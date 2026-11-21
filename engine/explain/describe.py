@@ -78,7 +78,7 @@ def counterfactual(
                 _score_without(edge.evidence, removed, weights),
                 [e for e in edge.evidence if e.feature not in removed],
             )
-            if rest.score < threshold or not link_basis(rest).ok:
+            if rest.score < threshold or not link_basis(rest, weights.kit_as_campaign).ok:
                 names = ", ".join(label(e) for e in ranked if e.feature in removed)
                 return f"Rozdzieliłoby je usunięcie: {names} (wynik spadłby do {rest.score:.2f})."
         return "Połączenie nie zależy od pojedynczych przesłanek."
@@ -100,7 +100,7 @@ def counterfactual(
 def edge_card(
     edge: Edge, threshold: float = LINK_THRESHOLD, weights: Weights = DEFAULT
 ) -> dict[str, Any]:
-    basis = link_basis(edge)
+    basis = link_basis(edge, weights.kit_as_campaign)
     linked = edge.score >= threshold and basis.ok
     strong = [e for e in edge.evidence if contribution(e) >= STRONG]
     support = [e for e in edge.evidence if SUPPORTING <= contribution(e) < STRONG]

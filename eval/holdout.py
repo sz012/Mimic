@@ -59,7 +59,9 @@ def holdout(
         held = [i for i in items if i.case_id == case and i.id in truth]
         rest = [i for i in items if i.case_id != case]
         ctx = build_context(rest)
-        campaigns = cluster(rest, all_edges(rest, ctx, weights), threshold, method, case_links)
+        campaigns = cluster(
+            rest, all_edges(rest, ctx, weights), threshold, method, case_links, weights
+        )
         rest_labels = {truth[i.id] for i in rest if i.id in truth}
         for item in held:
             if not has_features(item):

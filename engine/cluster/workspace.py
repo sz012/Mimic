@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from engine.cluster.campaigns import (
+    CASE_LINKS_DEFAULT,
     LINK_THRESHOLD,
     AssignmentDetail,
     Campaign,
@@ -50,7 +51,7 @@ class Workspace:
     edges: list[Edge] = field(default_factory=list)
     context: Context = field(default_factory=Context)
     campaigns: list[Campaign] = field(default_factory=list)
-    case_links: bool = False
+    case_links: bool = CASE_LINKS_DEFAULT
 
     def __post_init__(self) -> None:
         self._index()

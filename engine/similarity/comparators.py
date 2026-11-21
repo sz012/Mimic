@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 import imagehash
@@ -159,6 +160,22 @@ def hash_distance(name: str, a: str, b: str, ctx: Context | None) -> Result:
         )
     bits = len(a) * 4
     return Result(_clamp(1 - d / (bits * 0.25)), f"odległość Hamminga {d}/{bits}", a, b)
+
+
+def date_proximity(name: str, a: Any, b: Any, ctx: Context | None) -> Result:
+    def parse(v: Any) -> date | None:
+        v = v[0] if isinstance(v, list) and v else v
+        try:
+            return date.fromisoformat(str(v)[:10])
+        except ValueError:
+            return None
+
+    da, db = parse(a), parse(b)
+    if da is None or db is None:
+        return Result(0.0, "nieczytelna data", a, b)
+    days = abs((da - db).days)
+    score = 1.0 if days <= 3 else _clamp(1 - (days - 3) / 27)
+    return Result(score, f"daty rejestracji różnią się o {days} dni", str(da), str(db))
 
 
 def exact(name: str, a: Any, b: Any, ctx: Context | None) -> Result:

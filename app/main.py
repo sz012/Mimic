@@ -290,7 +290,7 @@ def main() -> None:
         method = st.radio("Grupowanie", list(METHODS), format_func=METHODS.get)
         case_links = st.checkbox(
             "Łącz materiały z tego samego przypadku",
-            value=False,
+            value=True,
             help="Reklama i strony docelowe z jednego zgłoszenia trafiają do jednej kampanii.",
         )
         if st.button("Przelicz cechy od nowa"):

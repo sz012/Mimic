@@ -26,11 +26,17 @@ from eval.variants import variants_report
 THRESHOLDS = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 GROUPS = ["text", "visual", "person", "infra", "template"]
 CONFIGS = {
-    "cechy": {"combine": "features", "case_links": False},
-    "grupy": {"combine": "groups", "case_links": False},
-    "cechy+przypadek": {"combine": "features", "case_links": True},
-    "grupy+przypadek": {"combine": "groups", "case_links": True},
+    "cechy": {"combine": "features", "case_links": False, "kit": False},
+    "grupy": {"combine": "groups", "case_links": False, "kit": False},
+    "cechy+przypadek": {"combine": "features", "case_links": True, "kit": False},
+    "grupy+przypadek": {"combine": "groups", "case_links": True, "kit": False},
+    "cechy+zestaw": {"combine": "features", "case_links": False, "kit": True},
+    "cechy+zestaw+przypadek": {"combine": "features", "case_links": True, "kit": True},
 }
+
+
+def config_weights(cfg: dict) -> Weights:
+    return Weights(combine=cfg["combine"], kit_as_campaign=cfg["kit"])
 
 
 def _without_group(items: list[Item], group: str) -> list[Item]:
@@ -52,7 +58,7 @@ def duplicate_check(
         twin = copy.deepcopy(item)
         twin.id = item.id + "#dup"
         edge = compare(item, twin, None, weights)
-        if edge is None or not is_link(edge, threshold):
+        if edge is None or not is_link(edge, threshold, weights.kit_as_campaign):
             failures.append(item.id)
     return {
         "checked": len(featured),
@@ -62,18 +68,21 @@ def duplicate_check(
     }
 
 
-def _pairs(items, truth, edges, threshold, method, case_links) -> dict:
-    rep = pair_report(truth, labels_of(cluster(items, edges, threshold, method, case_links)))
+def _pairs(items, truth, edges, threshold, method, case_links, weights=None) -> dict:
+    weights = weights or Weights()
+    rep = pair_report(
+        truth, labels_of(cluster(items, edges, threshold, method, case_links, weights))
+    )
     return {k: getattr(rep, k) for k in ("precision", "recall", "f1", "ari", "predicted_pairs")}
 
 
 def evaluate(items: list[Item], truth: dict[str, str], threshold: float, method: str) -> dict:
     configs = {}
     for name, cfg in CONFIGS.items():
-        w = Weights(combine=cfg["combine"])
+        w = config_weights(cfg)
         edges = all_edges(items, build_context(items), w)
         main = pair_report(
-            truth, labels_of(cluster(items, edges, threshold, method, cfg["case_links"]))
+            truth, labels_of(cluster(items, edges, threshold, method, cfg["case_links"], w))
         )
         configs[name] = {
             "pairs": {
@@ -82,7 +91,7 @@ def evaluate(items: list[Item], truth: dict[str, str], threshold: float, method:
             "false_links": main.false_links,
             "missed_links": main.missed_links,
             "sweep": {
-                str(t): _pairs(items, truth, edges, t, method, cfg["case_links"])
+                str(t): _pairs(items, truth, edges, t, method, cfg["case_links"], w)
                 for t in THRESHOLDS
             },
             "holdout": holdout(items, truth, threshold, method, w, cfg["case_links"]).summary(),
@@ -104,10 +113,10 @@ def synthetic_section(threshold: float, method: str) -> dict:
         name = "z_wabikami" if decoys else "czysty"
         out[name] = {}
         for cfg_name in ("cechy", "grupy"):
-            w = Weights(combine=CONFIGS[cfg_name]["combine"])
+            w = config_weights(CONFIGS[cfg_name])
             edges = all_edges(items, build_context(items), w)
             out[name][cfg_name] = {
-                "pairs": _pairs(items, truth, edges, threshold, method, False),
+                "pairs": _pairs(items, truth, edges, threshold, method, False, w),
                 "holdout": holdout(items, truth, threshold, method, w).summary(),
             }
         out[name]["warianty"] = variants_report(items, threshold, method)

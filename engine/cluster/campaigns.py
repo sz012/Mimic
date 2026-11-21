@@ -13,6 +13,7 @@ from engine.similarity.rules import LINK_THRESHOLD, is_link, link_basis
 from engine.similarity.weights import DEFAULT
 
 MARGIN = 0.05
+CASE_LINKS_DEFAULT = True
 UPLOAD_CASE = "upload"
 Method = Literal["components", "average"]
 
@@ -106,10 +107,11 @@ def cluster(
     threshold: float = LINK_THRESHOLD,
     method: Method = "components",
     case_links: bool = False,
+    weights: Weights = DEFAULT,
 ) -> list[Campaign]:
     ids = [i.id for i in items]
     by_id = {i.id: i for i in items}
-    links = [e for e in edges if is_link(e, threshold)]
+    links = [e for e in edges if is_link(e, threshold, weights.kit_as_campaign)]
     extra = _case_pairs(items) if case_links else []
     if method == "average":
         groups = _average_linkage(ids, links, extra, threshold)
@@ -156,7 +158,7 @@ def assign_detail(
             edge = compare(item, member, context, weights)
             if edge is None:
                 continue
-            ok = is_link(edge, threshold)
+            ok = is_link(edge, threshold, weights.kit_as_campaign)
             if (ok, edge.score) > (qualified, best.score if best else -1.0):
                 best, qualified = edge, ok
         if best is not None:
@@ -172,7 +174,7 @@ def assign_detail(
     second = next(((s, q, c) for s, q, c, _ in ranked[1:] if q), None)
     if not qualified:
         reason = (
-            link_basis(edge).reason
+            link_basis(edge, weights.kit_as_campaign).reason
             if score >= threshold
             else f"najlepszy wynik {score:.2f} poniżej progu {threshold:.2f}"
         )
@@ -182,7 +184,7 @@ def assign_detail(
             reason,
             edge=edge,
         )
-    basis = link_basis(edge).reason
+    basis = link_basis(edge, weights.kit_as_campaign).reason
     if second is not None and score - second[0] < margin:
         basis += f"; uwaga: pasuje także do {second[2].id} ({second[0]:.2f}), materiał może łączyć obie kampanie"
     return AssignmentDetail(

@@ -90,7 +90,7 @@ def variants_report(
 ) -> dict:
     rnd = random.Random(seed)
     ctx = build_context(items)
-    campaigns = cluster(items, all_edges(items, ctx, weights), threshold, method)
+    campaigns = cluster(items, all_edges(items, ctx, weights), threshold, method, False, weights)
     home = {i.id: c for c in campaigns for i in c.items}
     stats: dict[str, Counter] = {}
     for kind, make in variant_makers(items).items():
