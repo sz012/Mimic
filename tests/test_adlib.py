@@ -164,3 +164,18 @@ def test_items_carry_infra_and_text_features(tmp_path):
     assert item.features["infra.domain"].value == ["przyklad.test"]
     assert item.features["text.narrative"].available
     assert Path(tmp_path / "1000001" / "ad.json").exists()
+
+
+def test_fixture_mode_needs_no_token_and_filters_by_terms(monkeypatch):
+    monkeypatch.delenv("META_AD_LIBRARY_TOKEN", raising=False)
+    monkeypatch.setenv("MIMIC_ADLIB_FIXTURE", "1")
+    ads = search(AdQuery("inwestycje platforma"))
+    assert ads and all(a["id"].isdigit() for a in ads)
+    assert not search(AdQuery("zzzzzz"))
+
+
+def test_without_token_or_fixture_the_library_is_unavailable(monkeypatch):
+    monkeypatch.delenv("META_AD_LIBRARY_TOKEN", raising=False)
+    monkeypatch.delenv("MIMIC_ADLIB_FIXTURE", raising=False)
+    with pytest.raises(AdLibraryUnavailable):
+        search(AdQuery("inwestycje"))

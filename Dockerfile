@@ -14,7 +14,7 @@ RUN if [ -n "$(tr -d '[:space:]' < /tmp/apt-packages.txt)" ]; then \
       && xargs -r apt-get install -y --no-install-recommends < /tmp/apt-packages.txt \
       && rm -rf /var/lib/apt/lists/*; \
     fi
-ARG EXTRAS=""
+ARG EXTRAS="video,ocr"
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev $(for e in $(echo "$EXTRAS" | tr ',' ' '); do printf -- '--extra %s ' "$e"; done)
 COPY . .

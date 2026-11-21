@@ -6,6 +6,11 @@ import json
 from html import escape
 from typing import Any
 
+from engine.schema import Item
+
+SKIPPED_FEATURES = {"person.face_vectors"}
+VALUE_LIMIT = 240
+
 
 def to_json(cards: list[dict[str, Any]], meta: dict[str, Any]) -> str:
     return json.dumps({"meta": meta, "campaigns": cards}, ensure_ascii=False, indent=2, default=str)
@@ -36,6 +41,61 @@ def to_csv(cards: list[dict[str, Any]]) -> str:
                     edge["summary"] if edge else "brak połączeń (pojedynczy wzorzec)",
                 ]
             )
+    return buf.getvalue()
+
+
+def _value_text(value: Any) -> str:
+    if isinstance(value, dict):
+        value = {k: v for k, v in value.items() if k != "minhash"}
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
+    return text if len(text) <= VALUE_LIMIT else text[: VALUE_LIMIT - 1] + "…"
+
+
+def dataset_rows(items: list[Item], labels: dict[str, str | None]) -> list[dict[str, Any]]:
+    rows = []
+    for item in items:
+        for feature in sorted(item.features.values(), key=lambda f: (f.group, f.name)):
+            if feature.name in SKIPPED_FEATURES:
+                continue
+            rows.append(
+                {
+                    "material": item.id,
+                    "przypadek": item.case_id,
+                    "kampania": labels.get(item.id) or "",
+                    "grupa": feature.group,
+                    "cecha": feature.name,
+                    "dostepna": feature.available,
+                    "pewnosc": feature.confidence,
+                    "zrodlo": feature.source,
+                    "wartosc": _value_text(feature.value) if feature.available else "",
+                }
+            )
+    return rows
+
+
+def to_dataset_json(items: list[Item], labels: dict[str, str | None]) -> str:
+    return json.dumps(dataset_rows(items, labels), ensure_ascii=False, indent=2)
+
+
+def to_dataset_csv(items: list[Item], labels: dict[str, str | None]) -> str:
+    rows = dataset_rows(items, labels)
+    buf = io.StringIO()
+    writer = csv.DictWriter(
+        buf,
+        fieldnames=[
+            "material",
+            "przypadek",
+            "kampania",
+            "grupa",
+            "cecha",
+            "dostepna",
+            "pewnosc",
+            "zrodlo",
+            "wartosc",
+        ],
+    )
+    writer.writeheader()
+    writer.writerows(rows)
     return buf.getvalue()
 
 

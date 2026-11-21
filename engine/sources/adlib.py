@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from engine.enrich.http import HttpJson
 from engine.schema import Item
@@ -42,8 +42,40 @@ class AdQuery:
     max_pages: int = 3
 
 
+FIXTURE = Path(__file__).parent / "fixtures" / "adlib_sample.json"
+
+
 def token() -> str | None:
     return os.environ.get("META_AD_LIBRARY_TOKEN") or None
+
+
+def fixture_enabled() -> bool:
+    return os.environ.get("MIMIC_ADLIB_FIXTURE") == "1"
+
+
+def mode() -> str | None:
+    if token():
+        return "live"
+    return "fixture" if fixture_enabled() else None
+
+
+class FixtureTransport:
+    def get(self, url: str, headers=None) -> dict:
+        terms = parse_qs(urlsplit(url).query).get("search_terms", [""])[0].lower().split()
+        words = [t for t in terms if len(t) >= 3]
+        ads = json.loads(FIXTURE.read_text(encoding="utf-8")).get("data", [])
+
+        def hit(ad: dict) -> bool:
+            text = " ".join(
+                [
+                    *map(str, ad.get("ad_creative_bodies") or []),
+                    *map(str, ad.get("ad_creative_link_titles") or []),
+                    str(ad.get("page_name") or ""),
+                ]
+            ).lower()
+            return any(word in text for word in words)
+
+        return {"data": [ad for ad in ads if hit(ad)]}
 
 
 def _params(query: AdQuery) -> dict[str, str]:
@@ -59,6 +91,9 @@ def _params(query: AdQuery) -> dict[str, str]:
 
 def search(query: AdQuery, transport=None, access_token: str | None = None) -> list[dict]:
     access_token = access_token or token()
+    if not access_token and fixture_enabled():
+        transport = transport or FixtureTransport()
+        access_token = "fixture"
     if not access_token:
         raise AdLibraryUnavailable("brak META_AD_LIBRARY_TOKEN")
     transport = transport or HttpJson()

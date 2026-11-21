@@ -1,3 +1,3 @@
-from engine.sources.adlib import AdLibraryUnavailable, AdQuery, materialize, search
+from engine.sources.adlib import AdLibraryUnavailable, AdQuery, materialize, mode, search
 
-__all__ = ["AdLibraryUnavailable", "AdQuery", "materialize", "search"]
+__all__ = ["AdLibraryUnavailable", "AdQuery", "materialize", "mode", "search"]
