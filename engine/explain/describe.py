@@ -97,6 +97,45 @@ def shared_traits(
     return out
 
 
+def what_links(edges: list[Edge]) -> list[dict[str, Any]]:
+    by_feature: dict[str, dict[str, Any]] = {}
+    for e in edges:
+        for ev in e.evidence:
+            if contribution(ev) < SUPPORTING:
+                continue
+            row = by_feature.setdefault(
+                ev.feature,
+                {
+                    "feature": ev.feature,
+                    "group": ev.group,
+                    "label": ev.note.split(":")[0],
+                    "edges": 0,
+                    "strong": 0,
+                    "best": 0.0,
+                    "example": "",
+                },
+            )
+            row["edges"] += 1
+            row["strong"] += contribution(ev) >= STRONG
+            if contribution(ev) > row["best"]:
+                row["best"] = round(contribution(ev), 3)
+                row["example"] = ev.note
+    return sorted(by_feature.values(), key=lambda r: (-r["strong"], -r["edges"], -r["best"]))
+
+
+def missing_data(items: list[Item]) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for item in items:
+        for name, feat in item.features.items():
+            if feat.available:
+                continue
+            row = rows.setdefault(
+                name, {"feature": name, "group": feat.group, "items": [], "reason": feat.source}
+            )
+            row["items"].append(item.id)
+    return sorted(rows.values(), key=lambda r: (-len(r["items"]), r["feature"]))
+
+
 def campaign_card(campaign_id: str, items: list[Item], edges: list[Edge]) -> dict[str, Any]:
     feature_hits: Counter[str] = Counter()
     for e in edges:
@@ -109,6 +148,9 @@ def campaign_card(campaign_id: str, items: list[Item], edges: list[Edge]) -> dic
         "members": [i.id for i in items],
         "cases": sorted({i.case_id for i in items}),
         "key_features": feature_hits.most_common(),
+        "links": what_links(edges),
         "shared_traits": shared_traits(items),
+        "missing": missing_data(items),
         "edges": [edge_card(e) for e in sorted(edges, key=lambda e: -e.score)],
+        "formula": FORMULA,
     }

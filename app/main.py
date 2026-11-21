@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import os
 import sys
-import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,262 +10,296 @@ if str(ROOT) not in sys.path:
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
+from app.brand import load_brand
 from app.demo_items import demo_items
 from app.graph import graph_html
-from app.sources import kind_of, load_items, raw_dir
-from engine.cluster import LINK_THRESHOLD, assign, cluster
-from engine.cluster.pipeline import all_edges, extract_features
-from engine.explain import assignment_card, campaign_card, edge_card
-from engine.schema import Edge, Item
-from engine.similarity import build_context, compare
+from app.sources import ingest_upload, load_items, raw_dir
+from engine.cluster import LINK_THRESHOLD, Analysis, Workspace
+from engine.explain.report import to_csv, to_html, to_json
+from engine.schema import Evidence, Item
 
-CACHE_DIR = Path("data/cache")
+CACHE_DIR = Path(os.environ.get("MIMIC_CACHE_DIR", "data/cache"))
 UPLOAD_DIR = CACHE_DIR / "uploads"
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+METHODS = {"components": "składowe grafu", "average": "średnie wiązanie"}
 
-st.set_page_config(page_title="Mimic", layout="wide")
 
-
-@st.cache_resource(show_spinner="Wyciągam cechy z materiałów…")
-def load_corpus(root: str) -> tuple[list[Item], bool]:
+@st.cache_resource(show_spinner="Wyciągam cechy i porównuję materiały…")
+def workspace(root: str) -> tuple[Workspace, bool]:
     items = load_items()
     if not items:
-        return demo_items(), True
-    return [extract_features(i, Path(root), CACHE_DIR) for i in items], False
+        return Workspace(demo_items(), Path(root)), True
+    return Workspace.load(items, Path(root), CACHE_DIR), False
 
 
-@st.cache_resource(show_spinner="Porównuję materiały parami…")
-def corpus_edges(root: str, n: int) -> list[Edge]:
-    items, _ = load_corpus(root)
-    return all_edges(items, build_context(items))
+def short(value) -> str:
+    if value is None:
+        return "—"
+    if isinstance(value, dict):
+        value = {k: v for k, v in value.items() if k != "minhash"}
+    text = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
+    return text if len(text) <= 160 else text[:157] + "…"
 
 
-def evidence_frame(evidence) -> pd.DataFrame:
-    rows = []
-    for e in evidence:
-        rows.append(
+def evidence_frame(evidence: list[Evidence]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
             {
                 "cecha": e.feature,
                 "grupa": e.group,
                 "waga": e.weight,
                 "zgodność": e.score,
                 "wkład": round(e.weight * e.score, 3),
-                "lewa strona": _short(e.left),
-                "prawa strona": _short(e.right),
+                "lewa strona": short(e.left),
+                "prawa strona": short(e.right),
                 "przesłanka": e.note,
             }
-        )
-    return pd.DataFrame(rows)
+            for e in evidence
+        ]
+    )
 
 
-def _short(value) -> str:
-    if value is None:
-        return "—"
-    text = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
-    return text if len(text) <= 160 else text[:157] + "…"
+def resolve(rel: str, root: Path) -> Path | None:
+    for base in (root, UPLOAD_DIR):
+        p = base / rel
+        if p.suffix.lower() in IMAGE_SUFFIXES and p.is_file():
+            return p
+    return None
 
 
-def show_images(evidence, root: Path) -> None:
+def show_images(evidence: list[Evidence], root: Path) -> None:
     for e in evidence:
         if e.group != "visual" or e.score <= 0:
             continue
         lefts = e.left if isinstance(e.left, list) else [e.left]
         rights = e.right if isinstance(e.right, list) else [e.right]
-        pairs = [
-            (l, r) for l, r in zip(lefts, rights) if isinstance(l, str) and isinstance(r, str)
-        ][:3]
-        for left, right in pairs:
-            lp, rp = root / left, root / right
-            if (
-                lp.suffix.lower() in IMAGE_SUFFIXES
-                and rp.suffix.lower() in IMAGE_SUFFIXES
-                and lp.exists()
-                and rp.exists()
-            ):
+        for left, right in list(zip(lefts, rights))[:3]:
+            if not (isinstance(left, str) and isinstance(right, str)):
+                continue
+            lp, rp = resolve(left, root), resolve(right, root)
+            if lp and rp:
                 c1, c2 = st.columns(2)
                 c1.image(str(lp), caption=left, width=220)
                 c2.image(str(rp), caption=right, width=220)
 
 
-def show_edge(edge: Edge, root: Path) -> None:
-    card = edge_card(edge)
+def show_edge_card(card: dict, evidence: list[Evidence], root: Path) -> None:
     st.markdown(
-        f"**{edge.a} ↔ {edge.b}**: wynik {edge.score:.2f} ({card['strength']}). {card['summary']}"
+        f"**{card['a']} ↔ {card['b']}**: wynik {card['score']:.2f} ({card['strength']}). {card['summary']}"
     )
     for r in card["reasons"]:
         st.markdown(f"- {r}")
     if card["contrary"]:
         st.caption("Przeciw: " + " | ".join(card["contrary"]))
     with st.expander("Wszystkie przesłanki i braki danych"):
-        st.dataframe(evidence_frame(edge.evidence), use_container_width=True, hide_index=True)
+        st.dataframe(evidence_frame(evidence), width="stretch", hide_index=True)
         st.caption(card["formula"])
-        show_images(edge.evidence, root)
+        show_images(evidence, root)
 
 
-def upload_item(files, url: str) -> Item | None:
-    if not files and not url:
-        return None
-    token = uuid.uuid4().hex[:8]
-    folder = UPLOAD_DIR / token
-    folder.mkdir(parents=True, exist_ok=True)
-    paths: dict[str, list[str]] = {}
-    for f in files or []:
-        target = folder / Path(f.name).name
-        target.write_bytes(f.getvalue())
-        kind = kind_of(target)
-        if kind:
-            paths.setdefault(kind, []).append(str(target.relative_to(UPLOAD_DIR)))
-    if url:
-        (folder / "input.url").write_text(url)
-        paths.setdefault("url", []).append(str((folder / "input.url").relative_to(UPLOAD_DIR)))
-    item = Item(id=f"upload/{token}", case_id="upload", paths=paths)
-    return extract_features(item, UPLOAD_DIR, None)
+def show_analysis(analysis: Analysis, root: Path) -> None:
+    card = analysis.card
+    if analysis.is_new_pattern:
+        st.info(f"{card['verdict']}. Najlepszy wynik: {card['score']:.2f}")
+    else:
+        st.success(f"{card['verdict']} (wynik {card['score']:.2f})")
+    st.caption(analysis.formula)
+    if card["reasons"]:
+        st.markdown("**Przesłanki najlepszego dopasowania:**")
+        for r in card["reasons"]:
+            st.markdown(f"- {r}")
+    if analysis.missing:
+        with st.expander(f"Czego brakowało w tym materiale ({len(analysis.missing)} cech)"):
+            st.dataframe(pd.DataFrame(analysis.missing), width="stretch", hide_index=True)
+    st.subheader("Najbardziej podobne materiały")
+    if not analysis.similar:
+        st.write("Brak materiałów z jakąkolwiek wspólną przesłanką.")
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "materiał": r["item"],
+                    "kampania": r["campaign"],
+                    "wynik": r["score"],
+                    "przesłanki": r["card"]["summary"],
+                }
+                for r in analysis.similar
+            ]
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+    for r in analysis.similar[:5]:
+        if r["score"] >= 0.3:
+            show_edge_card(r["card"], r["edge"].evidence, root)
+
+
+def run_upload(files: list[tuple[str, bytes]], url: str | None) -> None:
+    try:
+        item = ingest_upload(files, url, UPLOAD_DIR)
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    if not item.paths:
+        st.warning(
+            "Nie rozpoznano żadnego pliku (obsługiwane: html, har, zrzuty, wideo, json, url, zip)."
+        )
+        return
+    st.session_state["upload_item"] = item
+
+
+def analysis_tab(ws: Workspace, root: Path) -> None:
+    source = st.radio("Wejście", ["Materiał ze zbioru", "Pliki", "URL"], horizontal=True)
+    if source == "Materiał ze zbioru":
+        chosen = st.selectbox("Materiał", [i.id for i in ws.items])
+        show_analysis(ws.analyze(ws.by_id[chosen]), root)
+        return
+    if source == "Pliki":
+        files = st.file_uploader(
+            "HTML, HAR, zrzuty ekranu, wideo, metadane JSON albo archiwum ZIP",
+            accept_multiple_files=True,
+        )
+        if files and st.button("Analizuj pliki"):
+            run_upload([(f.name, f.getvalue()) for f in files], None)
+    else:
+        url = st.text_input("Adres URL (nie jest pobierany, strona może być złośliwa)")
+        st.caption(
+            "Sam adres trafia do cech infrastruktury; bez nich materiał zostanie oznaczony jako nowy wzorzec."
+        )
+        if url and st.button("Analizuj URL"):
+            run_upload([], url)
+    item: Item | None = st.session_state.get("upload_item")
+    if item is None:
+        return
+    show_analysis(ws.analyze(item, UPLOAD_DIR), root)
+    if item.id not in ws.by_id and st.button("Dodaj do zbioru i przelicz kampanie"):
+        assignment = ws.add(item, UPLOAD_DIR)
+        st.success(f"Dodano {item.id}. Przypisanie: {assignment.campaign_id or 'nowy wzorzec'}")
+
+
+def campaigns_tab(ws: Workspace, root: Path) -> None:
+    cards = ws.campaign_cards()
+    for card in cards:
+        title = (
+            f"Kampania {card['id']}: {card['size']} materiały, przypadki {', '.join(card['cases'])}"
+        )
+        with st.expander(title, expanded=True):
+            st.markdown("**Członkowie:** " + ", ".join(card["members"]))
+            if card["links"]:
+                st.markdown("**Co je łączy:**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "przesłanka": r["label"],
+                                "grupa": r["group"],
+                                "połączeń": r["edges"],
+                                "mocnych": r["strong"],
+                                "przykład": r["example"],
+                            }
+                            for r in card["links"]
+                        ]
+                    ),
+                    width="stretch",
+                    hide_index=True,
+                )
+            if card["shared_traits"]:
+                st.markdown("**Wspólne ślady:**")
+                for feat, vals in card["shared_traits"].items():
+                    st.markdown(f"- `{feat}`: " + ", ".join(f"{v} ({n})" for v, n in vals))
+            if card["missing"]:
+                st.markdown(
+                    "**Brakujące dane:** "
+                    + "; ".join(
+                        f"{m['feature']} ({len(m['items'])}/{card['size']})"
+                        for m in card["missing"]
+                    )
+                )
+            campaign = ws.campaign(card["id"])
+            for edge, ecard in zip(sorted(campaign.edges, key=lambda e: -e.score), card["edges"]):
+                show_edge_card(ecard, edge.evidence, root)
+    if ws.singletons:
+        st.subheader("Nowe wzorce (bez kampanii)")
+        st.write(", ".join(c.item_ids[0] for c in ws.singletons))
+    meta = {
+        **ws.stats(),
+        "threshold": ws.threshold,
+        "method": METHODS[ws.method],
+        "formula": cards[0]["formula"] if cards else "",
+    }
+    st.subheader("Eksport")
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("Raport JSON", to_json(cards, meta), "kampanie.json", "application/json")
+    c2.download_button("Tabela CSV", to_csv(cards), "kampanie.csv", "text/csv")
+    c3.download_button("Raport HTML do wydruku", to_html(cards, meta), "kampanie.html", "text/html")
+
+
+def graph_tab(ws: Workspace) -> None:
+    min_edge = st.slider("Pokaż krawędzie od", 0.1, 0.95, 0.3, 0.05)
+    st.caption(
+        "Kolor węzła = kampania (szary: nowy wzorzec), grubość krawędzi = wynik, linia przerywana = poniżej progu."
+    )
+    st.iframe(graph_html(ws.graph(min_edge), load_brand()), height=650)
+
+
+def features_tab(ws: Workspace) -> None:
+    chosen = st.selectbox("Materiał", [i.id for i in ws.items], key="feat_item")
+    it = ws.by_id[chosen]
+    st.json({k: it.paths.get(k) for k in it.kinds})
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "cecha": f.name,
+                    "grupa": f.group,
+                    "dostępna": f.available,
+                    "pewność": f.confidence,
+                    "źródło": f.source,
+                    "wartość": short(f.value),
+                }
+                for f in sorted(it.features.values(), key=lambda f: f.name)
+            ]
+        ),
+        width="stretch",
+        hide_index=True,
+    )
 
 
 def main() -> None:
+    st.set_page_config(page_title="Mimic", layout="wide")
     root = raw_dir()
     st.title("Mimic")
     st.caption(
         "Łączenie podejrzanych reklam i stron w kampanie, z przesłankami dla każdego połączenia."
     )
+    ws, is_demo = workspace(str(root))
     with st.sidebar:
         threshold = st.slider("Próg połączenia", 0.3, 0.95, LINK_THRESHOLD, 0.05)
-        method = st.radio(
-            "Grupowanie",
-            ["components", "average"],
-            format_func=lambda m: {"components": "składowe grafu", "average": "średnie wiązanie"}[
-                m
-            ],
-        )
+        method = st.radio("Grupowanie", list(METHODS), format_func=METHODS.get)
         if st.button("Przelicz cechy od nowa"):
             st.cache_resource.clear()
-    items, is_demo = load_corpus(str(root))
+            st.rerun()
+    if (threshold, method) != (ws.threshold, ws.method):
+        ws.recluster(threshold, method)
     if is_demo:
         st.warning(f"Brak materiałów w {root}: pokazuję syntetyczne dane demo.")
-    edges = corpus_edges(str(root), len(items))
-    campaigns = cluster(items, edges, threshold, method)
-    by_id = {i.id: i for i in items}
-    real = [c for c in campaigns if not c.is_singleton]
-    singles = [c for c in campaigns if c.is_singleton]
-    st.sidebar.metric("Materiały", len(items))
-    st.sidebar.metric("Kampanie", len(real))
-    st.sidebar.metric("Pojedyncze wzorce", len(singles))
-
+    stats = ws.stats()
+    st.sidebar.metric("Materiały", stats["items"])
+    st.sidebar.metric("Kampanie", stats["campaigns"])
+    st.sidebar.metric("Nowe wzorce", stats["singletons"])
     tab_an, tab_camp, tab_graph, tab_feat = st.tabs(
         ["Analiza materiału", "Kampanie", "Graf", "Cechy"]
     )
-
     with tab_an:
-        source = st.radio("Wejście", ["Materiał ze zbioru", "Plik(i)", "URL"], horizontal=True)
-        item = None
-        if source == "Materiał ze zbioru":
-            chosen = st.selectbox("Materiał", [i.id for i in items])
-            item = by_id[chosen]
-        elif source == "Plik(i)":
-            files = st.file_uploader(
-                "HTML, HAR, zrzut ekranu, wideo, metadane JSON", accept_multiple_files=True
-            )
-            if files and st.button("Analizuj pliki"):
-                st.session_state["upload_item"] = upload_item(files, "")
-            item = st.session_state.get("upload_item")
-        else:
-            url = st.text_input("Adres URL (nie jest pobierany, strona może być złośliwa)")
-            if url and st.button("Analizuj URL"):
-                st.session_state["upload_item"] = upload_item([], url)
-            item = st.session_state.get("upload_item")
-            st.caption(
-                "Z samego URL-a cechy liczy moduł infra; bez niego materiał będzie oznaczony jako nowy wzorzec."
-            )
-        if item is not None:
-            ctx = build_context(items)
-            assignment = assign(item, campaigns, ctx, threshold=threshold)
-            card = assignment_card(assignment)
-            if assignment.campaign_id:
-                st.success(f"{card['verdict']} (wynik {assignment.score:.2f})")
-            else:
-                st.info(f"{card['verdict']}, najlepszy wynik {assignment.score:.2f}")
-            for r in card["reasons"]:
-                st.markdown(f"- {r}")
-            sims = []
-            for other in items:
-                if other.id == item.id:
-                    continue
-                e = compare(item, other, ctx)
-                if e is not None:
-                    sims.append(e)
-            sims.sort(key=lambda e: -e.score)
-            st.subheader("Najbardziej podobne materiały")
-            label = {i.id: c.id for c in campaigns for i in c.items}
-            st.dataframe(
-                pd.DataFrame(
-                    [
-                        {
-                            "materiał": e.b,
-                            "kampania": label.get(e.b),
-                            "wynik": e.score,
-                            "przesłanki": edge_card(e)["summary"],
-                        }
-                        for e in sims[:10]
-                    ]
-                ),
-                use_container_width=True,
-                hide_index=True,
-            )
-            for e in sims[:5]:
-                if e.score >= 0.3:
-                    show_edge(e, root)
-
+        analysis_tab(ws, root)
     with tab_camp:
-        for c in real:
-            card = campaign_card(c.id, c.items, c.edges)
-            with st.expander(
-                f"Kampania {c.id}: {card['size']} materiałów, przypadki {', '.join(card['cases'])}",
-                expanded=True,
-            ):
-                st.markdown("**Członkowie:** " + ", ".join(card["members"]))
-                if card["key_features"]:
-                    st.markdown(
-                        "**Najczęstsze przesłanki:** "
-                        + ", ".join(f"{f} ×{n}" for f, n in card["key_features"])
-                    )
-                if card["shared_traits"]:
-                    st.markdown("**Wspólne ślady:**")
-                    for feat, vals in card["shared_traits"].items():
-                        st.markdown(f"- `{feat}`: " + ", ".join(f"{v} ({n})" for v, n in vals))
-                for e in sorted(c.edges, key=lambda e: -e.score):
-                    show_edge(e, root)
-        if singles:
-            st.subheader("Nowe wzorce (bez kampanii)")
-            st.write(", ".join(c.item_ids[0] for c in singles))
-
+        campaigns_tab(ws, root)
     with tab_graph:
-        min_edge = st.slider("Pokaż krawędzie od", 0.1, 0.95, 0.3, 0.05)
-        components.html(
-            graph_html(items, edges, campaigns, min_edge, threshold), height=650, scrolling=False
-        )
-
+        graph_tab(ws)
     with tab_feat:
-        chosen = st.selectbox("Materiał", [i.id for i in items], key="feat_item")
-        it = by_id[chosen]
-        st.json({k: it.paths.get(k) for k in it.kinds})
-        rows = [
-            {
-                "cecha": f.name,
-                "grupa": f.group,
-                "dostępna": f.available,
-                "pewność": f.confidence,
-                "źródło": f.source,
-                "wartość": _short(
-                    f.value
-                    if not isinstance(f.value, dict)
-                    else {k: v for k, v in f.value.items() if k != "minhash"}
-                ),
-            }
-            for f in it.features.values()
-        ]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        features_tab(ws)
 
 
 main()
