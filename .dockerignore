@@ -6,6 +6,8 @@ data/cache
 .env
 .idea
 models
-brand
+brand/*
+!brand/film
+data/refs/images
 web/node_modules
 web/dist

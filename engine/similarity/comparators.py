@@ -151,6 +151,25 @@ def cosine(name: str, a: list, b: list, ctx: Context | None) -> Result:
     return Result(_clamp((sim - 0.5) / 0.4), f"podobieństwo kosinusowe {sim:.2f}", None, None)
 
 
+def face_vectors(name: str, a: list, b: list, ctx: Context | None) -> Result:
+    from engine.features.faces import threshold
+
+    limit = threshold()
+    best = -1.0
+    for x in a:
+        for y in b:
+            den = math.sqrt(sum(p * p for p in x)) * math.sqrt(sum(q * q for q in y))
+            if den:
+                best = max(best, sum(p * q for p, q in zip(x, y)) / den)
+    left, right = f"{len(a)} twarzy", f"{len(b)} twarzy"
+    if best < limit:
+        return Result(
+            0.0, f"brak wspólnej twarzy (najbliższe podobieństwo {best:.2f})", left, right
+        )
+    score = 0.5 + 0.5 * _clamp((best - limit) / max(0.01, 0.7 - limit))
+    return Result(score, f"ta sama twarz na obu materiałach (podobieństwo {best:.2f})", left, right)
+
+
 def hash_distance(name: str, a: str, b: str, ctx: Context | None) -> Result:
     try:
         d = _hamming(a, b)

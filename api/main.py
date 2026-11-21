@@ -152,6 +152,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                 item.features.get("person.face_vectors") and item.features["person.face_vectors"].available
                 for item in ws.items
             ),
+            "adlib_enabled": bool(os.environ.get("META_AD_LIBRARY_TOKEN")),
         }
 
     @app.exception_handler(StarletteHTTPException)
@@ -198,6 +199,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                 item.features.get("person.face_vectors") and item.features["person.face_vectors"].available
                 for item in ws.items
             ),
+            "adlib_enabled": bool(os.environ.get("META_AD_LIBRARY_TOKEN")),
         }
 
     @app.get("/api/items")
@@ -304,14 +306,37 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                 "threshold": ws.threshold,
             }
 
+    def analysis_payload(result, existing: bool) -> dict:
+        return {
+            "item": {"id": result.item.id, "case_id": result.item.case_id, "kinds": result.item.kinds, "media": result.item.paths.get("screenshot", [])[:5]},
+            "assignment": {"item_id": result.assignment.item_id, "campaign_id": result.assignment.campaign_id, "score": result.assignment.score, "evidence": [public_evidence(e) for e in result.assignment.evidence]},
+            "card": result.card,
+            "similar": [{k: v for k, v in row.items() if k != "edge"} for row in result.similar],
+            "missing": result.missing,
+            "available": result.available,
+            "formula": result.formula,
+            "best_edge_card": result.best_edge_card,
+            "is_new_pattern": result.is_new_pattern,
+            "existing": existing,
+        }
+
     @app.post("/api/analyze")
     async def analyze(
         request: Request,
         files: Annotated[list[UploadFile] | None, File()] = None,
         url: Annotated[str | None, Form()] = None,
+        existing_id: Annotated[str | None, Form()] = None,
     ):
         limit(request, "analyze", 30)
         files = files or []
+        if existing_id:
+            ws = current()
+            with app.state.lock:
+                known = ws.by_id.get(existing_id)
+                if known is None:
+                    raise HTTPException(404, "Nie znaleziono materiału.")
+                result = ws.analyze(known)
+                return analysis_payload(result, existing=True)
         if not files and not (url or "").strip():
             raise HTTPException(422, "Dodaj plik lub adres URL.")
         if url:
@@ -331,17 +356,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             item = ingest_upload(uploaded, url, app.state.upload_dir)
             result = ws.analyze(item, app.state.upload_dir)
             app.state.uploads[item.id] = result.item
-            return {
-                "item": {"id": result.item.id, "case_id": result.item.case_id, "kinds": result.item.kinds, "media": result.item.paths.get("screenshot", [])[:5]},
-                "assignment": {"item_id": result.assignment.item_id, "campaign_id": result.assignment.campaign_id, "score": result.assignment.score, "evidence": [public_evidence(e) for e in result.assignment.evidence]},
-                "card": result.card,
-                "similar": [{k: v for k, v in row.items() if k != "edge"} for row in result.similar],
-                "missing": result.missing,
-                "available": result.available,
-                "formula": result.formula,
-                "best_edge_card": result.best_edge_card,
-                "is_new_pattern": result.is_new_pattern,
-            }
+            return analysis_payload(result, existing=False)
 
     @app.post("/api/items")
     def add_item(body: AddBody, request: Request):
@@ -389,6 +404,14 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             else:
                 raise HTTPException(404, "Nieznany format raportu.")
             return Response(content, media_type=f"{mime}; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="mimic-report.{format}"'})
+
+    film = Path(__file__).resolve().parents[1] / "brand" / "film" / "mimic-film.mp4"
+
+    @app.get("/film.mp4")
+    def film_file():
+        if not film.is_file():
+            raise HTTPException(404, "Brak filmu.")
+        return FileResponse(film, media_type="video/mp4", headers={"Cache-Control": "no-cache"})
 
     dist = Path(__file__).resolve().parents[1] / "web" / "dist"
     if dist.is_dir():

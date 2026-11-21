@@ -33,6 +33,9 @@ def item_keys(item: Item, context: Context | None = None, weights: Weights = DEF
             continue
         if weights.spec(name, feat.group).weight < MIN_KEY_WEIGHT:
             continue
+        if name == "person.face_vectors":
+            keys.add("faces")
+            continue
         if isinstance(value, str):
             keys.update(
                 _hash_keys(name, value) if len(value) in (16, 32, 64) else [f"{name}={value}"]

@@ -27,3 +27,4 @@ web/*.tsbuildinfo
 brand/archiwum/
 !brand/film/mimic-film.mp4
 brand/**/*.md
+data/refs/images/

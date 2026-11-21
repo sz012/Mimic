@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from app.sources import load_items, raw_dir
 from engine.cluster import LINK_THRESHOLD, cluster, labels_of
+from engine.cluster.perspectives import run_all as run_perspectives
 from engine.cluster.pipeline import all_edges, extract_all, has_features
 from engine.schema import Item
 from engine.similarity import Weights, build_context, compare
@@ -106,6 +107,26 @@ def evaluate(items: list[Item], truth: dict[str, str], threshold: float, method:
     return {"configs": configs, "ablation": ablation}
 
 
+def perspectives_section(items: list[Item], truth: dict[str, str], threshold: float) -> dict:
+    featured = [i for i in items if has_features(i)]
+    out = {}
+    for case_links in (False, True):
+        results = run_perspectives(featured, threshold, case_links)
+        out["z_przypadkiem" if case_links else "bez_przypadku"] = {
+            key: {
+                "kampanie": len(res.real),
+                "pojedyncze": len(res.singletons),
+                **{
+                    k: getattr(report, k)
+                    for k in ("precision", "recall", "f1", "ari")
+                    for report in [pair_report(truth, labels_of(res.campaigns))]
+                },
+            }
+            for key, res in results.items()
+        }
+    return out
+
+
 def synthetic_section(threshold: float, method: str) -> dict:
     out = {}
     for decoys in (True, False):
@@ -144,6 +165,12 @@ def _print_summary(report: dict, threshold: float) -> None:
             print("  test 'nie łącz' (fałszywe połączenia):", cfg["false_links"] or "brak")
         for name, r in real["ablation"].items():
             print(f"  {name}: P {r['precision']} R {r['recall']} F1 {r['f1']}")
+        for mode, rows in real.get("perspectives", {}).items():
+            for key, r in rows.items():
+                print(
+                    f"  perspektywa {key:<9} ({mode}): kampanie {r['kampanie']}, "
+                    f"P {r['precision']:.2f} R {r['recall']:.2f} ARI {r['ari']:.2f}"
+                )
     elif real:
         print("dane: brak etykiet, grupy przy progu", threshold, real["clusters"])
     for kind, r in report["variants_real"].items():
@@ -182,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     report["variants_real"] = variants_report(items, args.threshold, args.method) if items else {}
     if truth:
         report["real"] = evaluate(items, truth, args.threshold, args.method)
+        report["real"]["perspectives"] = perspectives_section(items, truth, args.threshold)
     elif items:
         edges = all_edges(items)
         report["real"] = {

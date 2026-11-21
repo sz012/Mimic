@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import type { EdgeCard, Group } from './api'
 import { groupNames, short } from './api'
 
-export function Section({ title, lead, children, action }: { title: string; lead?: string; children: ReactNode; action?: ReactNode }) {
-  return <section className="section"><div className="sectionHead"><div><h1>{title}</h1>{lead && <p>{lead}</p>}</div>{action}</div>{children}</section>
+export function Section({ title, lead, children, action, className = '' }: { title: string; lead?: string; children: ReactNode; action?: ReactNode; className?: string }) {
+  return <section className={`section ${className}`}><div className="sectionHead"><div><h1>{title}</h1>{lead && <p>{lead}</p>}</div>{action}</div>{children}</section>
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -32,11 +32,17 @@ export function Score({ value }: { value: number }) {
   return <strong className="score">{Math.round(value * 100)}<small>%</small></strong>
 }
 
+function conciseSummary(summary: string, limit = 5): string {
+  const [lead, rest] = summary.includes(': ') ? [summary.slice(0, summary.indexOf(': ') + 2), summary.slice(summary.indexOf(': ') + 2)] : ['', summary]
+  const parts = rest.split('; ')
+  return parts.length <= limit ? summary : `${lead}${parts.slice(0, limit).join('; ')} i ${parts.length - limit} więcej`
+}
+
 export function EdgeDetails({ card }: { card: EdgeCard | null }) {
   if (!card) return <Empty>Brak wspólnych przesłanek dla tej pary.</Empty>
   return <div className="edgeDetails">
     <div className="verdict"><span>{card.linked ? 'Połączone' : 'Nie połączone'}</span><Score value={card.score} /></div>
-    <p>{card.summary}</p><p className="muted">{card.basis}</p>
+    <p>{conciseSummary(card.summary)}</p><p className="muted">{card.basis}</p>
     {card.reasons.length > 0 && <div><h3>Za połączeniem</h3><ul>{card.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></div>}
     {card.contrary.length > 0 && <div><h3>Przeciw</h3><ul>{card.contrary.map((reason, index) => <li key={index}>{reason}</li>)}</ul></div>}
     {card.missing.length > 0 && <div><h3>Brak danych</h3><ul>{card.missing.map((reason, index) => <li key={index}>{reason}</li>)}</ul></div>}

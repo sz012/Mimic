@@ -4,22 +4,23 @@ import '@fontsource/geist/latin-600.css'
 import '@fontsource/geist/latin-ext-400.css'
 import '@fontsource/geist/latin-ext-500.css'
 import '@fontsource/geist/latin-ext-600.css'
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { BrowserRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { create } from 'zustand'
 import { request } from './api'
 import type { AppState } from './api'
-import { demoSteps } from './demo/script'
-import { CampaignsView, Collection, Compare, CriteriaView, MapView, Material, NewMaterial } from './views'
+import { demoStepsFor } from './demo/script'
+import type { ItemRow } from './api'
+import { CampaignsView, Collection, Compare, CriteriaView, Home, Material, NewMaterial } from './views'
 import './style.css'
 
 type UiState = { theme: 'system' | 'light' | 'dark'; demo: boolean; step: number; setTheme: (theme: UiState['theme']) => void; setDemo: (demo: boolean) => void; setStep: (step: number) => void }
 const useUi = create<UiState>(set => ({ theme: 'system', demo: false, step: 0, setTheme: theme => set({ theme }), setDemo: demo => set({ demo }), setStep: step => set({ step }) }))
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 10_000 } } })
 const nav = [
-  ['/', 'Zbiór'], ['/items', 'Materiał'], ['/compare', 'Porównanie'], ['/criteria', 'Kryteria'], ['/map', 'Mapa'], ['/campaigns', 'Kampanie'], ['/new', 'Nowy materiał'],
+  ['/', 'Przegląd'], ['/collection', 'Zbiór'], ['/items', 'Materiał'], ['/compare', 'Porównanie'], ['/criteria', 'Kryteria'], ['/campaigns', 'Kampanie'], ['/new', 'Nowy materiał'],
 ] as const
 
 function App() {
@@ -27,14 +28,17 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const state = useQuery({ queryKey: ['state'], queryFn: () => request<AppState>('/state') })
+  const itemRows = useQuery({ queryKey: ['items'], queryFn: () => request<ItemRow[]>('/items') })
+  const demoSteps = useMemo(() => demoStepsFor((itemRows.data || []).map(row => row.id)), [itemRows.data])
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
   const go = (index: number) => {
     const bounded = Math.max(0, Math.min(demoSteps.length - 1, index))
     setStep(bounded)
     const target = demoSteps[bounded]
     const path = target.view === '/items' && target.item ? `/items/${encodeURIComponent(target.item)}` : target.view
-    const params = target.view === '/compare' ? `?a=${encodeURIComponent(target.item || '')}&b=${encodeURIComponent(target.other || '')}` : target.sample ? `?demo_sample=${target.sample}` : ''
-    navigate(path + params)
+    const hash = target.hash ? `#${target.hash}` : ''
+    const params = target.view === '/compare' ? `?a=${encodeURIComponent(target.item || '')}&b=${encodeURIComponent(target.other || '')}` : target.analyze ? `?demo_item=${encodeURIComponent(target.analyze)}` : target.sample ? `?demo_sample=${target.sample}` : ''
+    navigate(path + params + hash)
   }
   useEffect(() => {
     if (!demo) return
@@ -50,11 +54,10 @@ function App() {
   const startDemo = () => { setDemo(true); go(0) }
   const logo = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches) ? '/logo-dark.svg' : '/logo.svg'
   return <div className="appShell">
-    <header className="topbar"><div className="topbarInner"><NavLink to="/" className="brand" aria-label="mimic, strona główna"><img src={logo} alt="mimic" /><span>Więcej zaufania do tego, co widzisz.</span></NavLink><div className="headerActions"><button className="showButton" onClick={demo ? () => setDemo(false) : startDemo}>{demo ? 'Zakończ pokaz' : 'Tryb pokazu'}</button><label className="themeSelect">Motyw <select value={theme} onChange={event => setTheme(event.target.value as UiState['theme'])}><option value="system">Systemowy</option><option value="light">Jasny</option><option value="dark">Ciemny</option></select></label></div></div></header>
-    <nav className="mainNav" aria-label="Główna nawigacja">{nav.map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => isActive || (to === '/items' && location.pathname.startsWith('/items/')) ? 'active' : ''} end={to === '/'}>{label}</NavLink>)}</nav>
+    <header className="topbar"><div className="topbarInner"><NavLink to="/" className="brand" aria-label="mimic, strona główna"><img src={logo} alt="mimic" /></NavLink><nav className="mainNav" aria-label="Główna nawigacja">{nav.map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => isActive || (to === '/items' && location.pathname.startsWith('/items/')) ? 'active' : ''} end={to === '/'}>{label}</NavLink>)}</nav><div className="headerActions"><button className="showButton" onClick={demo ? () => setDemo(false) : startDemo}>{demo ? 'Zakończ pokaz' : 'Tryb pokazu'}</button><label className="themeSelect"><span className="srOnly">Motyw</span><select value={theme} onChange={event => setTheme(event.target.value as UiState['theme'])} aria-label="Motyw"><option value="system">Systemowy</option><option value="light">Jasny</option><option value="dark">Ciemny</option></select></label></div></div></header>
     {demo && <div className="demoBar"><div className="demoProgress">{demoSteps.map((item, index) => <button key={index} className={index === step ? 'activeStep' : ''} onClick={() => go(index)} aria-label={`Krok ${index + 1}: ${item.title}`} title={item.title}>{index + 1}</button>)}</div><div className="demoCaption"><strong>{demoSteps[step].title}</strong><span>{demoSteps[step].description}</span></div><div className="demoActions"><button disabled={step === 0} onClick={() => go(step - 1)}>Wstecz</button><button className="primaryButton" disabled={step === demoSteps.length - 1} onClick={() => go(step + 1)}>Dalej</button></div></div>}
-    <main className={demo ? 'demoMain' : ''}>{state.isError ? <div className="apiError card"><h1>Nie można połączyć się z API</h1><p>Uruchom serwer poleceniem <code>make api</code>, a potem odśwież stronę.</p><button onClick={() => state.refetch()}>Spróbuj ponownie</button></div> : <Routes><Route path="/" element={<Collection />} /><Route path="/items/*" element={<Material demo={demo} />} /><Route path="/compare" element={<Compare />} /><Route path="/criteria" element={<CriteriaView />} /><Route path="/map" element={<MapView theme={theme} />} /><Route path="/campaigns" element={<CampaignsView />} /><Route path="/new" element={<NewMaterial />} /></Routes>}</main>
-    <footer>mimic · Analiza powiązań oparta na jawnych przesłankach</footer>
+    <main className={demo ? 'demoMain' : ''}>{state.isError ? <div className="apiError card"><h1>Nie można połączyć się z API</h1><p>Uruchom serwer poleceniem <code>make api</code>, a potem odśwież stronę.</p><button onClick={() => state.refetch()}>Spróbuj ponownie</button></div> : <Routes><Route path="/" element={<Home theme={theme} />} /><Route path="/collection" element={<Collection />} /><Route path="/map" element={<Navigate to="/#mapa" replace />} /><Route path="/items/*" element={<Material demo={demo} />} /><Route path="/compare" element={<Compare />} /><Route path="/criteria" element={<CriteriaView />} /><Route path="/campaigns" element={<CampaignsView />} /><Route path="/new" element={<NewMaterial />} /></Routes>}</main>
+    <footer className="siteFooter"><div className="footerGrid"><div className="footerBrand"><img src={logo} alt="mimic" /><p>Więcej zaufania do tego, co widzisz.</p></div><nav className="footerLinks" aria-label="Skróty"><span>Nawigacja</span><NavLink to="/">Przegląd</NavLink><NavLink to="/criteria">Kryteria</NavLink><NavLink to="/campaigns">Kampanie</NavLink><NavLink to="/new">Nowy materiał</NavLink></nav><div className="footerTeam"><span>Zespół</span><b>Szymon Pytel</b><b>Wojciech Palczewski</b></div></div><div className="footerBase">Follow the Fake · HackNation 2026</div></footer>
   </div>
 }
 
