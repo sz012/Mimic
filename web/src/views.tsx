@@ -22,7 +22,10 @@ function primaryImage(item?: ItemDetail): string | null {
 
 function ImagePair({ first, second, firstLabel, secondLabel }: { first: string | null; second: string | null; firstLabel: string; secondLabel: string }) {
   if (!first && !second) return null
-  return <div className="imagePair">{[[first, firstLabel], [second, secondLabel]].map(([path, label]) => <div key={label}><strong>{label}</strong>{path ? <img src={`/api/media?path=${encodeURIComponent(path)}`} alt={`Obraz źródłowy: ${label}`} /> : <p>Brak zrzutu</p>}</div>)}</div>
+  return <div className="imagePair">{[[first, firstLabel], [second, secondLabel]].map(([path, label]) => {
+    const source = path ? `/api/media?path=${encodeURIComponent(path)}` : null
+    return <figure key={label} className="imageTile">{source && <span className="imageBackdrop" style={{ backgroundImage: `url("${source}")` }} aria-hidden="true" />}<figcaption>{label}</figcaption>{source ? <img src={source} alt={`Obraz źródłowy: ${label}`} /> : <p>Brak zrzutu</p>}</figure>
+  })}</div>
 }
 
 export function Collection() {
