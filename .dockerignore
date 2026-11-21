@@ -1,0 +1,7 @@
+.git
+.venv
+task
+data/raw
+data/cache
+.env
+.idea

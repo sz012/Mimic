@@ -1,0 +1,21 @@
+# materiały organizatora: nie publikować
+task/
+data/raw/
+data/cache/
+*.har
+*.mp4
+*.mhtml
+.env
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+*.sqlite
+*.db
+
+.idea/
+.vscode/
+.DS_Store
