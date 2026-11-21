@@ -117,3 +117,13 @@ def test_rate_limiter_is_per_client_and_action():
     assert not limiter.allow("one", "analyze", 1, 60)
     assert limiter.allow("two", "analyze", 1, 60)
     assert limiter.allow("one", "criteria", 1, 60)
+
+
+def test_analyze_existing_material_excludes_itself(tmp_path):
+    api = client(tmp_path)
+    known = api.post("/api/analyze", data={"existing_id": "demo/A2"}).json()
+    assert known["existing"] is True and known["assignment"]["campaign_id"]
+    assert all(row["item"] != "demo/A2" for row in known["similar"])
+    assert api.post("/api/analyze", data={"existing_id": "brak"}).status_code == 404
+    state = api.get("/api/state").json()
+    assert state["adlib_enabled"] is False
