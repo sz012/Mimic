@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        EXTRAS: ${MIMIC_EXTRAS:-}
     ports:
       - "8501:8501"
     env_file:

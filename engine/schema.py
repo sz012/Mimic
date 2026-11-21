@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 Group = Literal["text", "visual", "infra", "template", "person"]
-Kind = Literal["html", "har", "screenshot", "video", "meta", "url"]
+Kind = Literal["html", "har", "screenshot", "video", "meta", "url", "assets"]
 
 
 @dataclass(frozen=True)
@@ -16,7 +16,9 @@ class Feature:
 
     @classmethod
     def missing(cls, name: str, group: Group, source: str = "") -> "Feature":
-        return cls(name=name, group=group, value=None, confidence=0.0, source=source, available=False)
+        return cls(
+            name=name, group=group, value=None, confidence=0.0, source=source, available=False
+        )
 
 
 @dataclass
