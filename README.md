@@ -13,7 +13,8 @@ Narzędzie do zadania NASK "Follow the Fake" (HackNation 2026). Z pojedynczych p
 - **Porównuje** materiały ważonym podobieństwem. Brak danych nigdy nie obniża wyniku.
 - **Grupuje** w kampanie tylko z uzasadnieniem: twardy ślad, dowody z dwóch niezależnych źródeł albo jedna bardzo silna przesłanka.
 - **Pokazuje**, po czym można dzielić na kampanie: sześć kryteriów (operator, szablon, narracja, wizerunek, platforma, łączone) i graf powiązań z opisem każdej krawędzi.
-- **Przypisuje** nowy materiał do kampanii albo mówi "nowy wzorzec", zamiast dopasowywać na siłę.
+- **Przypisuje** nowy materiał do kampanii albo mówi "nowy wzorzec", zamiast dopasowywać na siłę, i pokazuje wyodrębnione cechy nowego materiału.
+- **Eksportuje** raport kampanii (JSON, CSV, HTML) oraz zbiór cech wszystkich materiałów (CSV, JSON).
 
 ## Uruchomienie
 
@@ -73,15 +74,22 @@ Zmienne środowiskowe (wzór w `.env.example`, plik `.env` nie trafia do gita):
 | `MIMIC_ENRICH` | `1` włącza zapytania o metadane domen (RDAP, DNS, crt.sh) | `0` |
 | `MIMIC_ALLOW_FETCH` | `1` pozwala pobrać stronę spod podanego URL (statycznie, bez JS) | `0` |
 | `META_AD_LIBRARY_TOKEN` | token dostępu do biblioteki reklam Meta (bez niego odświeżanie zgłasza brak) | puste |
+| `MIMIC_ADLIB_FIXTURE` | `1` włącza tryb weryfikacji biblioteki reklam na syntetycznym zestawie (bez tokenu i sieci) | `0` (w Dockerze `1`) |
 | `MIMIC_ADLIB_QUERIES` | frazy wyszukiwania oddzielone przecinkami, np. `inwestycje,suplement` | puste |
 | `MIMIC_ADLIB_COUNTRIES` | kraje docelowe reklam | `PL` |
 | `MIMIC_REFRESH_SECONDS` | odstęp między odświeżeniami w trybie ciągłym | `21600` |
-| `MIMIC_EXTRAS` | dodatkowe grupy zależności w obrazie Docker, np. `video,faces` | puste |
+| `MIMIC_EXTRAS` | dodatkowe grupy zależności w obrazie Docker (`video`, `ocr`, `faces`) | `video,ocr` |
 | `MIMIC_MODELS_DIR` | katalog modeli | `models` |
 | `MIMIC_FACE_REFS` | katalog z obrazami referencyjnymi osób (`<imię nazwisko>/zdjęcie.jpg`) | `data/refs/images` |
 | `MIMIC_FACE_THRESHOLD` | próg podobieństwa twarzy | `0.5` |
 
-## Okresowe odświeżanie z biblioteki reklam
+## Biblioteka reklam Meta
+
+Wyszukiwanie reklam i okresowe odświeżanie korzysta z Meta Ad Library API i wymaga tokenu dostępu. Jak go uzyskać: konto na [Meta for Developers](https://developers.facebook.com/), potwierdzenie tożsamości do dostępu do biblioteki reklam i token użytkownika z zakresem `ads_read`. Token ustawia się w `META_AD_LIBRARY_TOKEN` na serwerze i nie trafia do repozytorium.
+
+Bez tokenu można zweryfikować cały przepływ w trybie weryfikacji: `MIMIC_ADLIB_FIXTURE=1` (w Dockerze włączone domyślnie) używa wbudowanego zestawu syntetycznych reklam w formacie odpowiedzi API, bez sieci. W interfejsie zakładka "Biblioteka reklam" w „Nowym materiale” wyszuka na przykład „inwestycje”, „stawy” lub „nagroda”.
+
+### Okresowe odświeżanie
 
 ```bash
 docker compose --profile refresh up -d refresher
@@ -124,6 +132,9 @@ Materiały to oszukańcze strony. Nie otwieraj ich w przeglądarce. Narzędzie p
 - `app/` zapasowy demonstrator (Streamlit)
 - `engine/` logika bez zależności od interfejsu: `ingest`, `features`, `similarity`, `cluster`, `store`, `explain`, `enrich`
 - `eval/` metryki i ocena
+- `scripts/` import danych, odświeżanie z biblioteki reklam, pobieranie modeli
+- `tests/` testy na danych syntetycznych
+- `docker/` pakiety systemowe obrazu
 - `brand/` identyfikacja wizualna: logo, banery, film demo
 - `data/labels/` etykiety kampanii (jedyna część `data/` w gicie)
 - `docs/` metodyka, źródła danych, decyzje

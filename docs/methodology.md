@@ -39,6 +39,7 @@ Wszystkie cechy liczone są statycznie. Strony oszustów nie są otwierane, a ic
 - `visual.assets`: pHash obrazów z katalogów zasobów (bez ikon poniżej 80 px i obrazów jednolitych); gdy ich brak, obrazy zapisane w HAR.
 - `visual.video`: klatki kluczowe wideo (próbkowanie co 1 s, zapis przy zmianie sceny albo co najmniej raz na 10 s, do 30 klatek), zapisywane w `data/cache/frames/`.
 - `visual.exact`: SHA-1 plików zrzutów i wideo.
+- Logotypy: nie ma osobnego detektora. Logotyp, który powtarza się na stronach i reklamach, jest obrazem z zasobów strony, więc trafia do `visual.assets` i jest porównywany przez pHash, a nazwa marki w grafice jest odczytywana przez OCR (`text.ocr`, `text.entities`). Ograniczenie: logotyp widoczny tylko na zrzucie ekranu, bez osobnego pliku, jest porównywany jako część całego zrzutu (`visual.screenshot`).
 
 ### 3.3 OCR
 RapidOCR (modele PP-OCR w ONNX, bez binarek systemowych) czyta zrzuty, klatki kluczowe i do 6 największych obrazów strony. Linie o pewności poniżej 0,6 są odrzucane, a wyniki zapamiętywane w `data/cache/ocr/`. Tekst z OCR zasila narrację, słowa kluczowe i nazwy tylko wtedy, gdy materiał nie ma strony (sama reklama, samo wideo). Zawsze trafia do `text.ocr`.
@@ -131,6 +132,8 @@ Wyniki na etykietach roboczych (14 materiałów, 3 kampanie, bez łączenia po p
 5. Kampania z jednym członkiem jest pełnoprawnym celem przypisania.
 
 ## 8. Interpretowalność
+
+Aplikacja eksportuje wyniki: raport kampanii (JSON, CSV, HTML z przesłankami każdego połączenia) oraz zbiór cech wszystkich materiałów (po jednym wierszu na materiał i cechę: grupa, wartość, pewność, źródło; bez wektorów twarzy).
 
 Każda krawędź ma: przesłanki z wkładem (cecha, grupa, waga, zgodność, wartości po obu stronach, opis po polsku), przesłanki przeciw (ważne cechy, które się nie zgadzają), braki danych z powodem, podstawę decyzji i kontrprzykład (jakie przesłanki trzeba by usunąć, żeby rozdzielić materiały, albo jakiego wkładu brakuje do połączenia). Interfejs pokazuje także wzór wyniku.
 
