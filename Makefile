@@ -1,4 +1,4 @@
-.PHONY: setup run test eval docker
+.PHONY: setup run test eval ingest labels-check docker
 
 setup:
 	uv sync
@@ -11,6 +11,12 @@ test:
 
 eval:
 	uv run python eval/run_eval.py
+
+ingest:
+	uv run python -m scripts.ingest
+
+labels-check:
+	uv run python -m scripts.labels_check
 
 docker:
 	docker compose up --build
