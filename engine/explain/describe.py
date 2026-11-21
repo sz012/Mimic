@@ -79,7 +79,10 @@ def counterfactual(
                 [e for e in edge.evidence if e.feature not in removed],
             )
             if rest.score < threshold or not link_basis(rest, weights.kit_as_campaign).ok:
-                names = ", ".join(label(e) for e in ranked if e.feature in removed)
+                labels = [label(e) for e in ranked if e.feature in removed]
+                names = ", ".join(labels[:4]) + (
+                    f" i {len(labels) - 4} innych" if len(labels) > 4 else ""
+                )
                 return f"Rozdzieliłoby je usunięcie: {names} (wynik spadłby do {rest.score:.2f})."
         return "Połączenie nie zależy od pojedynczych przesłanek."
     if edge.score < threshold:

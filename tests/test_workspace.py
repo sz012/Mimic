@@ -82,3 +82,22 @@ def test_upload_from_files_and_zip(raw, tmp_path):
     assert "url" in item.kinds
     a = ws.analyze(item, tmp_path / "up")
     assert a.assignment.campaign_id == ws.label["100"]
+
+
+def test_store_keeps_uploads_and_assignments_across_restart(raw, tmp_path):
+    from engine.store import Store
+
+    store = Store(tmp_path / "m.sqlite")
+    ws = Workspace.load(discover_items(raw), raw, tmp_path / "cache", store=store)
+    assert {i.id for i in store.items()} == set(ws.by_id)
+    assert store.campaigns()
+    html = (raw / "100" / "strona.html").read_bytes()
+    item = ingest_upload([("kopia.html", html)], None, tmp_path / "up")
+    assignment = ws.add(item, tmp_path / "up")
+    assert assignment.campaign_id == ws.label["100"]
+    again = Workspace.load(
+        discover_items(raw), raw, tmp_path / "cache", store=Store(tmp_path / "m.sqlite")
+    )
+    assert item.id in again.by_id
+    assert again.label[item.id] == again.label["100"]
+    assert [a.item_id for a in again.history()] == [item.id]

@@ -12,7 +12,7 @@ from PIL import Image, ImageStat
 from engine.schema import Feature, Item
 
 GROUP = "visual"
-VERSION = "1"
+VERSION = "2"
 MIN_SIDE = 80
 MAX_ASSETS = 150
 VIDEO_STEP_SECONDS = 2
@@ -74,7 +74,7 @@ def _screenshot_entries(item: Item, raw_dir: Path) -> list[dict]:
 
 
 def _asset_dirs(item: Item, raw_dir: Path) -> list[Path]:
-    dirs = []
+    dirs = [raw_dir / rel for rel in item.paths.get("assets", []) if (raw_dir / rel).is_dir()]
     for rel in item.paths.get("html", []):
         html = raw_dir / rel
         cand = html.with_name(html.stem + ASSET_DIR_SUFFIX)

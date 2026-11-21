@@ -14,7 +14,7 @@ import streamlit as st
 from app.brand import load_brand
 from app.demo_items import demo_items
 from app.graph import graph_html
-from app.sources import ingest_upload, load_items, raw_dir
+from app.sources import ingest_upload, load_items, open_store, raw_dir
 from engine.cluster import LINK_THRESHOLD, Analysis, Workspace
 from engine.explain.report import to_csv, to_html, to_json
 from engine.schema import Evidence, Item
@@ -30,7 +30,7 @@ def workspace(root: str) -> tuple[Workspace, bool]:
     items = load_items()
     if not items:
         return Workspace(demo_items(), Path(root)), True
-    return Workspace.load(items, Path(root), CACHE_DIR), False
+    return Workspace.load(items, Path(root), CACHE_DIR, store=open_store()), False
 
 
 def short(value) -> str:
@@ -233,6 +233,24 @@ def campaigns_tab(ws: Workspace, root: Path) -> None:
     if ws.singletons:
         st.subheader("Nowe wzorce (bez kampanii)")
         st.write(", ".join(c.item_ids[0] for c in ws.singletons))
+    history = ws.history()
+    if history:
+        st.subheader("Zapisane przypisania dodanych materiałów")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "materiał": a.item_id,
+                        "kampania": a.campaign_id or "nowy wzorzec",
+                        "kampania teraz": ws.label.get(a.item_id),
+                        "wynik": a.score,
+                    }
+                    for a in history
+                ]
+            ),
+            width="stretch",
+            hide_index=True,
+        )
     meta = {
         **ws.stats(),
         "threshold": ws.threshold,

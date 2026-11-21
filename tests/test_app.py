@@ -17,6 +17,7 @@ def test_app_runs_on_demo_data(tmp_path, monkeypatch):
 
 def test_app_runs_on_files(raw, tmp_path, monkeypatch):
     monkeypatch.setenv("MIMIC_RAW_DIR", str(raw))
+    monkeypatch.setenv("MIMIC_DB_PATH", str(tmp_path / "mimic.sqlite"))
     monkeypatch.setenv("MIMIC_CACHE_DIR", str(tmp_path / "cache"))
     at = AppTest.from_file(APP, default_timeout=120).run()
     assert not at.exception

@@ -19,6 +19,7 @@ from engine.schema import Assignment, Edge, Item
 from engine.similarity import Context, Weights, build_context, compare
 from engine.similarity.compare import formula
 from engine.similarity.weights import DEFAULT
+from engine.store import Store
 
 MIN_SIMILAR = 0.05
 
@@ -52,6 +53,7 @@ class Workspace:
     context: Context = field(default_factory=Context)
     campaigns: list[Campaign] = field(default_factory=list)
     case_links: bool = CASE_LINKS_DEFAULT
+    store: Store | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         self._index()
@@ -68,9 +70,19 @@ class Workspace:
         threshold: float = LINK_THRESHOLD,
         method: Method = "components",
         weights: Weights = DEFAULT,
+        store: Store | None = None,
     ) -> Workspace:
-        ready = extract_all(items, Path(raw_dir), cache_dir)
-        return cls(ready, Path(raw_dir), cache_dir, threshold, method, weights)
+        fresh = [i for i in items if not i.features]
+        prepared = [i for i in items if i.features]
+        ready = extract_all(fresh, Path(raw_dir), cache_dir) + prepared
+        known = {i.id for i in ready}
+        stored = [i for i in store.items() if i.id not in known] if store else []
+        if store:
+            for item in ready:
+                store.upsert_item(item)
+        return cls(
+            ready + stored, Path(raw_dir), cache_dir, threshold, method, weights, store=store
+        )
 
     def _index(self) -> None:
         self.by_id = {i.id: i for i in self.items}
@@ -88,9 +100,11 @@ class Workspace:
         if case_links is not None:
             self.case_links = case_links
         self.campaigns = cluster(
-            self.items, self.edges, self.threshold, self.method, self.case_links
+            self.items, self.edges, self.threshold, self.method, self.case_links, self.weights
         )
         self.label = {i.id: c.id for c in self.campaigns for i in c.items}
+        if self.store is not None:
+            self.store.save_campaigns([c.to_schema() for c in self.campaigns])
         return self.campaigns
 
     @property
@@ -167,9 +181,17 @@ class Workspace:
             if edge is not None:
                 self.edges.append(edge)
         self.recluster()
-        if assignment.campaign_id is None:
-            return assignment
-        return Assignment(item.id, self.label[item.id], assignment.score, assignment.evidence)
+        if assignment.campaign_id is not None:
+            assignment = Assignment(
+                item.id, self.label[item.id], assignment.score, assignment.evidence
+            )
+        if self.store is not None:
+            self.store.upsert_item(item)
+            self.store.save_assignment(assignment)
+        return assignment
+
+    def history(self) -> list[Assignment]:
+        return self.store.assignments() if self.store is not None else []
 
     def campaign_cards(self, include_singletons: bool = False) -> list[dict[str, Any]]:
         chosen = self.campaigns if include_singletons else self.real_campaigns
