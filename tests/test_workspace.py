@@ -101,3 +101,41 @@ def test_store_keeps_uploads_and_assignments_across_restart(raw, tmp_path):
     assert item.id in again.by_id
     assert again.label[item.id] == again.label["100"]
     assert [a.item_id for a in again.history()] == [item.id]
+
+
+class FakeAds:
+    def __init__(self, ads):
+        self.ads = ads
+
+    def get(self, url, headers=None):
+        return {"data": self.ads}
+
+
+def test_search_ads_analyzes_and_adds(raw, tmp_path):
+    ws = Workspace.load(discover_items(raw), raw, tmp_path / "cache")
+    ads = [
+        {
+            "id": "11111111",
+            "ad_creative_bodies": ["Kapsułki na stawy naturalny lekarz poleca kurację"],
+            "page_name": "Strona A",
+        },
+        {
+            "id": "22222222",
+            "ad_creative_bodies": ["Kapsułki na stawy naturalny lekarz poleca kurację"],
+            "page_name": "Strona B",
+        },
+    ]
+    results, error = ws.search_ads(
+        "stawy", ["PL"], tmp_path / "adlib", transport=FakeAds(ads), access_token="T"
+    )
+    assert error is None and [i.id for i, _ in results] == ["adlib/11111111", "adlib/22222222"]
+    for item, _ in results:
+        ws.add(item, tmp_path / "adlib")
+    assert ws.label["adlib/11111111"] == ws.label["adlib/22222222"] != ws.label["100"]
+
+
+def test_search_ads_without_token(raw, tmp_path, monkeypatch):
+    monkeypatch.delenv("META_AD_LIBRARY_TOKEN", raising=False)
+    ws = Workspace.load(discover_items(raw), raw, tmp_path / "cache")
+    results, error = ws.search_ads("x", ["PL"], tmp_path / "adlib")
+    assert results == [] and "META_AD_LIBRARY_TOKEN" in error
