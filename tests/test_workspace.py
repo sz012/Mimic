@@ -16,7 +16,7 @@ def _ws(tmp_path):
 
 def test_workspace_builds_campaigns(tmp_path):
     ws = _ws(tmp_path)
-    assert ws.stats() == {"items": 5, "campaigns": 2, "singletons": 1}
+    assert ws.stats() == {"insufficient": 0, "items": 5, "campaigns": 2, "singletons": 1}
     card = ws.card(ws.label["demo/A1"])
     assert card["links"] and card["links"][0]["edges"] >= 1
     assert card["formula"]

@@ -14,10 +14,12 @@ from datasketch import MinHash
 from engine.schema import Feature, Item
 
 GROUP = "text"
+VERSION = "1"
 NUM_PERM = 128
 SHINGLE = 3
 MAX_HTML_BYTES = 8_000_000
 MAX_ENTITIES = 40
+MAX_HAR_BYTES = 120_000_000
 
 STOPWORDS = frozenset(
     {
@@ -310,6 +312,8 @@ def parse_html(raw: bytes | str, source: str) -> TextDoc:
 
 def _html_from_har(path: Path) -> bytes | None:
     try:
+        if path.stat().st_size > MAX_HAR_BYTES:
+            return None
         har = json.loads(path.read_bytes())
     except (OSError, ValueError):
         return None

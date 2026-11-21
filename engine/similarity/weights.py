@@ -39,6 +39,7 @@ class Weights:
     features: dict[str, Spec] = field(default_factory=lambda: dict(FEATURES))
     group_default: dict[str, float] = field(default_factory=lambda: dict(GROUP_DEFAULT_WEIGHT))
     scale: dict[str, float] = field(default_factory=dict)
+    combine: str = "features"
 
     def spec(self, name: str, group: str) -> Spec:
         base = self.features.get(name)

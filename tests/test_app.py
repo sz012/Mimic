@@ -25,5 +25,5 @@ def test_app_runs_on_files(raw, tmp_path, monkeypatch):
     next(r for r in at.radio if r.label == "Wejście").set_value("URL").run()
     at.text_input[0].set_value("https://przyklad.test/x").run()
     next(b for b in at.button if b.label == "Analizuj URL").click().run()
-    assert any("nowy wzorzec" in i.value for i in at.info)
+    assert any("za mało danych" in i.value for i in at.info)
     assert not at.exception

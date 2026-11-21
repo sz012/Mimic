@@ -88,10 +88,12 @@ def show_edge_card(card: dict, evidence: list[Evidence], root: Path) -> None:
     st.markdown(
         f"**{card['a']} ↔ {card['b']}**: wynik {card['score']:.2f} ({card['strength']}). {card['summary']}"
     )
+    st.caption(("Połączone: " if card["linked"] else "Niepołączone: ") + card["basis"])
     for r in card["reasons"]:
         st.markdown(f"- {r}")
     if card["contrary"]:
-        st.caption("Przeciw: " + " | ".join(card["contrary"]))
+        st.caption("Przeciw, bo: " + " | ".join(card["contrary"]))
+    st.caption("Co musiałoby się zmienić: " + card["counterfactual"])
     with st.expander("Wszystkie przesłanki i braki danych"):
         st.dataframe(evidence_frame(evidence), width="stretch", hide_index=True)
         st.caption(card["formula"])
@@ -100,10 +102,18 @@ def show_edge_card(card: dict, evidence: list[Evidence], root: Path) -> None:
 
 def show_analysis(analysis: Analysis, root: Path) -> None:
     card = analysis.card
-    if analysis.is_new_pattern:
-        st.info(f"{card['verdict']}. Najlepszy wynik: {card['score']:.2f}")
+    if card["status"] == "przypisano":
+        st.success(f"{card['verdict']} (wynik {card['score']:.2f}). Podstawa: {card['basis']}")
+    elif card["status"] == "za_malo_danych":
+        st.info(f"{card['verdict']}: {card['basis']}")
     else:
-        st.success(f"{card['verdict']} (wynik {card['score']:.2f})")
+        st.info(f"{card['verdict']}. Najlepszy wynik: {card['score']:.2f}. {card['basis']}")
+    if card["runner_up"]:
+        st.caption(
+            f"Druga najlepsza kampania: {card['runner_up']} ({analysis.detail.runner_up_score:.2f})"
+        )
+    if analysis.best_edge_card:
+        st.caption("Co musiałoby się zmienić: " + analysis.best_edge_card["counterfactual"])
     st.caption(analysis.formula)
     if card["reasons"]:
         st.markdown("**Przesłanki najlepszego dopasowania:**")
@@ -278,17 +288,24 @@ def main() -> None:
     with st.sidebar:
         threshold = st.slider("Próg połączenia", 0.3, 0.95, LINK_THRESHOLD, 0.05)
         method = st.radio("Grupowanie", list(METHODS), format_func=METHODS.get)
+        case_links = st.checkbox(
+            "Łącz materiały z tego samego przypadku",
+            value=False,
+            help="Reklama i strony docelowe z jednego zgłoszenia trafiają do jednej kampanii.",
+        )
         if st.button("Przelicz cechy od nowa"):
             st.cache_resource.clear()
             st.rerun()
-    if (threshold, method) != (ws.threshold, ws.method):
-        ws.recluster(threshold, method)
+    if (threshold, method, case_links) != (ws.threshold, ws.method, ws.case_links):
+        ws.recluster(threshold, method, case_links)
     if is_demo:
         st.warning(f"Brak materiałów w {root}: pokazuję syntetyczne dane demo.")
     stats = ws.stats()
     st.sidebar.metric("Materiały", stats["items"])
     st.sidebar.metric("Kampanie", stats["campaigns"])
     st.sidebar.metric("Nowe wzorce", stats["singletons"])
+    if stats["insufficient"]:
+        st.sidebar.metric("Za mało danych", stats["insufficient"])
     tab_an, tab_camp, tab_graph, tab_feat = st.tabs(
         ["Analiza materiału", "Kampanie", "Graf", "Cechy"]
     )

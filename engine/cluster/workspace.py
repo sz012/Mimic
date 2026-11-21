@@ -4,12 +4,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from engine.cluster.campaigns import LINK_THRESHOLD, Campaign, Method, assign, cluster
-from engine.cluster.pipeline import all_edges, extract_features
+from engine.cluster.campaigns import (
+    LINK_THRESHOLD,
+    AssignmentDetail,
+    Campaign,
+    Method,
+    assign_detail,
+    cluster,
+)
+from engine.cluster.pipeline import all_edges, extract_all, extract_features, has_features
 from engine.explain import assignment_card, campaign_card, edge_card
 from engine.schema import Assignment, Edge, Item
 from engine.similarity import Context, Weights, build_context, compare
-from engine.similarity.compare import FORMULA
+from engine.similarity.compare import formula
 from engine.similarity.weights import DEFAULT
 
 MIN_SIMILAR = 0.05
@@ -23,7 +30,9 @@ class Analysis:
     similar: list[dict[str, Any]]
     missing: list[dict[str, str]]
     available: list[str]
-    formula: str = FORMULA
+    detail: AssignmentDetail
+    formula: str = ""
+    best_edge_card: dict[str, Any] | None = None
 
     @property
     def is_new_pattern(self) -> bool:
@@ -41,6 +50,7 @@ class Workspace:
     edges: list[Edge] = field(default_factory=list)
     context: Context = field(default_factory=Context)
     campaigns: list[Campaign] = field(default_factory=list)
+    case_links: bool = False
 
     def __post_init__(self) -> None:
         self._index()
@@ -58,20 +68,27 @@ class Workspace:
         method: Method = "components",
         weights: Weights = DEFAULT,
     ) -> Workspace:
-        ready = [extract_features(i, Path(raw_dir), cache_dir) for i in items]
+        ready = extract_all(items, Path(raw_dir), cache_dir)
         return cls(ready, Path(raw_dir), cache_dir, threshold, method, weights)
 
     def _index(self) -> None:
         self.by_id = {i.id: i for i in self.items}
 
     def recluster(
-        self, threshold: float | None = None, method: Method | None = None
+        self,
+        threshold: float | None = None,
+        method: Method | None = None,
+        case_links: bool | None = None,
     ) -> list[Campaign]:
         if threshold is not None:
             self.threshold = threshold
         if method is not None:
             self.method = method
-        self.campaigns = cluster(self.items, self.edges, self.threshold, self.method)
+        if case_links is not None:
+            self.case_links = case_links
+        self.campaigns = cluster(
+            self.items, self.edges, self.threshold, self.method, self.case_links
+        )
         self.label = {i.id: c.id for c in self.campaigns for i in c.items}
         return self.campaigns
 
@@ -95,7 +112,7 @@ class Workspace:
 
     def analyze(self, item: Item, raw_dir: Path | None = None, limit: int = 10) -> Analysis:
         item = self.prepare(item, raw_dir)
-        assignment = assign(item, self.campaigns, self.context, self.weights, self.threshold)
+        detail = self.assign_detail(item)
         similar = []
         for other in self.items:
             if other.id == item.id:
@@ -103,7 +120,7 @@ class Workspace:
             edge = compare(item, other, self.context, self.weights)
             if edge is None or edge.score < MIN_SIMILAR:
                 continue
-            card = edge_card(edge)
+            card = edge_card(edge, self.threshold, self.weights)
             similar.append(
                 {
                     "item": other.id,
@@ -120,13 +137,25 @@ class Workspace:
             if not f.available
         ]
         available = sorted(f.name for f in item.features.values() if f.available)
+        card = assignment_card(detail.assignment, detail.status, detail.basis, detail.runner_up)
         return Analysis(
-            item, assignment, assignment_card(assignment), similar[:limit], missing, available
+            item,
+            detail.assignment,
+            card,
+            similar[:limit],
+            missing,
+            available,
+            detail,
+            formula(self.weights),
+            edge_card(detail.edge, self.threshold, self.weights) if detail.edge else None,
         )
+
+    def assign_detail(self, item: Item) -> AssignmentDetail:
+        return assign_detail(item, self.campaigns, self.context, self.weights, self.threshold)
 
     def add(self, item: Item, raw_dir: Path | None = None) -> Assignment:
         item = self.prepare(item, raw_dir)
-        assignment = assign(item, self.campaigns, self.context, self.weights, self.threshold)
+        assignment = self.assign_detail(item).assignment
         if item.id in self.by_id:
             return assignment
         self.items.append(item)
@@ -143,11 +172,11 @@ class Workspace:
 
     def campaign_cards(self, include_singletons: bool = False) -> list[dict[str, Any]]:
         chosen = self.campaigns if include_singletons else self.real_campaigns
-        return [campaign_card(c.id, c.items, c.edges) for c in chosen]
+        return [campaign_card(c.id, c.items, c.edges, self.threshold, self.weights) for c in chosen]
 
     def card(self, campaign_id: str) -> dict[str, Any] | None:
         c = self.campaign(campaign_id)
-        return campaign_card(c.id, c.items, c.edges) if c else None
+        return campaign_card(c.id, c.items, c.edges, self.threshold, self.weights) if c else None
 
     def graph(self, min_edge: float) -> dict[str, Any]:
         nodes = [
@@ -165,16 +194,18 @@ class Workspace:
                 "a": e.a,
                 "b": e.b,
                 "score": e.score,
-                "linked": e.score >= self.threshold,
-                "card": edge_card(e),
+                "linked": card["linked"],
+                "card": card,
             }
             for e in self.edges
             if e.score >= min_edge
+            for card in [edge_card(e, self.threshold, self.weights)]
         ]
         return {"nodes": nodes, "links": links, "threshold": self.threshold}
 
     def stats(self) -> dict[str, int]:
         return {
+            "insufficient": sum(1 for i in self.items if not has_features(i)),
             "items": len(self.items),
             "campaigns": len(self.real_campaigns),
             "singletons": len(self.singletons),
