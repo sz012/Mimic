@@ -12,3 +12,21 @@ services:
     volumes:
       - ./data/raw:/srv/mimic/data/raw:ro
       - ./data/cache:/srv/mimic/data/cache
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+  refresher:
+    build:
+      context: .
+      args:
+        EXTRAS: ${MIMIC_EXTRAS:-}
+    command: ["uv", "run", "--no-sync", "python", "-m", "scripts.refresh", "--loop"]
+    profiles: ["refresh"]
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data/cache:/srv/mimic/data/cache
