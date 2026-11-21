@@ -20,6 +20,9 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+web/node_modules/
+web/dist/
+web/*.tsbuildinfo
 
 brand/archiwum/
 !brand/film/mimic-film.mp4

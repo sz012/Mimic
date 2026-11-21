@@ -1,0 +1,28 @@
+.anatomy { margin-bottom: 35px; padding: 27px; border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); overflow: hidden }
+.anatomyHeader { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 22px }
+.anatomyHeader h2 { font-size: 1.9rem; margin: 14px 0 4px; overflow-wrap: anywhere }
+.anatomyHeader p { color: var(--muted); margin: 0 }
+.anatomyLayout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 20px; min-height: 365px }
+.anatomyPreview { position: relative; display: grid; place-items: center; min-width: 0; min-height: 360px; border: 2px solid currentColor; border-radius: 16px; overflow: hidden; background: var(--surface); transition: color .5s, box-shadow .5s; box-shadow: 0 0 40px color-mix(in srgb, currentColor 12%, transparent) }
+.anatomyPreview img { display: block; max-width: 100%; max-height: 365px; object-fit: contain }
+.anatomyPlaceholder { display: grid; gap: 12px; justify-items: center; color: var(--muted) }
+.anatomyPlaceholder strong { color: var(--text); font-size: 1.4rem }
+.placeholderMark { font-size: 6rem; font-weight: 600; line-height: 1; color: var(--primary); opacity: .3; transform: translateX(-9px); text-shadow: 9px 0 var(--primary) }
+.previewLabel { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; justify-content: space-between; background: var(--bg); color: var(--muted); border: 1px solid var(--border); border-radius: 9px; padding: 8px 11px; font-size: .76rem }
+.anatomyEvidence { min-width: 0; display: grid; grid-template-columns: 145px minmax(0, 1fr); gap: 17px }
+.segmentTabs { display: grid; align-content: start; gap: 8px }
+.segmentTabs button { text-align: left; border: 1px solid var(--border); border-radius: 11px; padding: 12px 10px; color: var(--muted); background: var(--surface); font-size: .74rem }
+.segmentTabs button span { display: block; font-size: .93rem; font-weight: 600; color: var(--text); margin-top: 3px }
+.segmentTabs .selectedSegment { border-color: currentColor; background: color-mix(in srgb, currentColor 7%, var(--bg)) }
+.segmentPanel { min-width: 0; border: 1px solid var(--border); border-radius: 14px; padding: 22px; animation: panelIn .5s both }
+@keyframes panelIn { from { transform: translateX(15px) } to { transform: translateX(0) } }
+.segmentPanel h3 { font-size: 1.45rem; margin: 14px 0 4px }
+.segmentPanel > p { color: var(--muted); margin: 0 0 17px }
+.segmentFeature { display: grid; gap: 5px; padding: 11px 0; border-top: 1px solid var(--border); overflow-wrap: anywhere }
+.segmentFeature strong { font-size: .84rem }
+.segmentFeature span { font-size: .87rem; line-height: 1.35 }
+.segmentFeature small { font-size: .73rem }
+.segmentMissing span { color: var(--muted) }
+.segmentPanel .privacyNote { font-size: .78rem; margin: 12px 0 0 }
+@media (max-width: 1100px) { .anatomyLayout { grid-template-columns: 1fr } .anatomyPreview { min-height: 300px } }
+@media (max-width: 520px) { .anatomyEvidence { grid-template-columns: 1fr } .segmentTabs { display: flex; overflow-x: auto } .segmentTabs button { min-width: 100px } .anatomyHeader { display: block } .anatomyHeader :global(.campaignChip) { margin-top: 16px } }

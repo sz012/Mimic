@@ -1,4 +1,4 @@
-.PHONY: setup run test eval ingest labels-check refresh docker
+.PHONY: setup run test eval ingest labels-check refresh docker api web web-build
 
 setup:
 	uv sync
@@ -23,3 +23,12 @@ refresh:
 
 docker:
 	docker compose up --build
+
+api:
+	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+web:
+	cd web && npm run dev
+
+web-build:
+	cd web && npm run build
