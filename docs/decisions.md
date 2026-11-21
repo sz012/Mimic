@@ -15,3 +15,9 @@ Format: decyzja, powód. Data wszystkich wpisów: 2026-11-21, o ile nie zapisano
 - **Wrażliwe parametry (`key`, `token`, `access_token`) zapisujemy jako skrót.** Zachowują wartość porównawczą bez przechowywania sekretów.
 - **Etykiety na poziomie przypadku z możliwością nadpisania dla materiału.** Prosty zapis, a wyjątki są możliwe.
 - **Ciężkie zależności jako opcjonalne grupy** (`video`, `faces`, `ml`), instalowane w obrazie przez `MIMIC_EXTRAS`. Aplikacja uruchamia się bez nich.
+- **Połączenie wymaga uzasadnienia, nie tylko progu.** Krawędź musi mieć twardą przesłankę (identyfikator, domena, dokładny duplikat), co najmniej dwie niezależne grupy dowodów albo jedną bardzo silną przesłankę. Wynik ≥ 0,6 sam nie wystarcza.
+- **Wspólny zestaw narzędzi nie łączy kampanii.** Ta sama favikona i ścieżki backendu konstruktora stron są pokazywane w uzasadnieniu, ale materiały łączą się dopiero przy dowodzie z treści, szablonu lub identyfikatorów.
+- **Materiały z jednego zgłoszenia (`case_id`) tworzą jedną kampanię.** Reklama i jej strony docelowe są jednym incydentem, więc `case_links` jest domyślnie włączone.
+- **Identyfikator kampanii jest stały** (`K-<najmniejszy id członka>`), żeby nie zmieniał się po dodaniu materiałów.
+- **Ocena symuluje ukryty zbiór** (holdout, warianty z brakami danych, korpus syntetyczny z wabikami), bo wynik na 10 przypadkach z wstępnymi etykietami jest optymistyczny.
+- **Rozpoznawanie twarzy poza zakresem tej wersji.** Wymaga modelu i obrazów referencyjnych z jasną licencją, a dopasowanie nazwisk w tekście i OCR daje podobną informację bez danych biometrycznych.
