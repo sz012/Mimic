@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mimic — materiały</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="kit.js"></script>
+<style>
+body{margin:0;background:#F5F5F7;font-family:Geist,system-ui,sans-serif;color:#0E0E11}
+.wrap{max-width:1280px;margin:0 auto;padding:64px 32px 120px}
+h1{font-weight:600;font-size:44px;letter-spacing:-.03em;margin:0 0 8px}
+p.lead{color:#6B6B74;margin:0 0 48px;font-size:17px}
+figure{margin:0 0 48px}
+figure canvas{width:100%;height:auto;border-radius:18px;box-shadow:0 1px 0 #e6e6ec,0 24px 60px rgba(30,30,70,.07);background:#fff;display:block}
+figcaption{display:flex;justify-content:space-between;align-items:center;color:#6B6B74;font-size:14px;margin-top:12px}
+figcaption a{color:#5546FF;text-decoration:none;font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Materiały</h1>
+<p class="lead">Banery i ilustracje na stronę, prezentację i do filmu. Każdy można pobrać jako PNG.</p>
+<div id="list"></div>
+</div>
+<script>
+const CLAIM1="Więcej zaufania",CLAIM2="do tego, co widzisz.";
+const DESC="mimic łączy fałszywe reklamy w kampanie, żeby szybciej chronić ludzi przed oszustwem.";
+function buttons(x,y,dark=false){
+  ctx.fillStyle=dark?"#F4F4F1":INK;rr(ctx,x,y-32,236,64,32);ctx.fill();txt("Zobacz demo",x+118,y+1,{size:22,weight:600,color:dark?INK:"#fff",align:"center",base:"middle"});
+  ctx.save();ctx.strokeStyle=dark?"rgba(255,255,255,.25)":"#DADAE2";ctx.lineWidth=1.4;rr(ctx,x+256,y-32,236,64,32);ctx.stroke();ctx.restore();txt("Jak to działa",x+256+118,y+1,{size:22,weight:500,color:dark?"#F4F4F1":INK,align:"center",base:"middle"});
+}
+function heroText(dark){
+  const c=dark?"#F4F4F1":INK,m=dark?"#9A9AA6":MUTED;
+  logo(120,96,.42,dark?{color:"#F4F4F1",accent:"#8D84FF"}:{});
+  txt(CLAIM1,120,470,{size:100,weight:600,ls:-4,color:c});txt(CLAIM2,120,578,{size:100,weight:600,ls:-4,color:c});
+  wrap(DESC,124,660,620,40,{size:28,color:m,ls:-.3});
+  buttons(124,800,dark);
+}
+function icon(n){
+  ctx.clearRect(0,0,n,n);ctx.fillStyle=INK;rr(ctx,0,0,n,n,n*0.23);ctx.fill();
+  const S=n*0.68/Math.max(G.m_width-G.left,100-G.offset[1]),w=(G.m_width-G.left)*S,h=(100-G.offset[1])*S;
+  logo(n/2-w/2,n/2-h/2-G.offset[1]*S,S,{mOnly:true,color:"#F4F4F1",accent:"#8D84FF"});
+}
+const ITEMS=[
+ {name:"hero-strona",w:1920,h:1080,cap:"Nagłówek strony",draw(){
+   softAura(1420,560,950);heroText(false);
+   copies(1500,620,1.38,{n:3,step:44});
+   pill(1500,880,"4 reklamy, 1 kampania",{size:22,dot:ACC});
+ }},
+ {name:"okladka",w:1920,h:1080,cap:"Okładka prezentacji",draw(){
+   softAura(980,520,1000);
+   const S=2.35;logo(960-logoW(S)/2,455-60*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",960,700,{size:44,weight:500,align:"center",color:"#3A3A44",ls:-1});
+ }},
+ {name:"og-1200x630",w:1200,h:630,cap:"Podgląd linku (Open Graph)",draw(){
+   softAura(760,240,640);
+   const S=1.35;logo(600-logoW(S)/2,265-60*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",600,440,{size:40,weight:500,align:"center",color:"#3A3A44",ls:-.9});
+ }},
+ {name:"kampania",w:1600,h:1000,cap:"Sekcja „problem”: za fałszywką stoi kampania",draw(){
+   softAura(1100,520,820);
+   txt("Za każdą fałszywką",120,400,{size:66,weight:600,ls:-2.6});txt("stoi kampania.",120,474,{size:66,weight:600,ls:-2.6});
+   wrap("Ta sama twarz, ten sam szablon, ten sam tracker. Zablokowana reklama wraca pod nowym adresem, dopóki nie zobaczysz całości.",122,550,540,38,{size:25,color:MUTED,ls:-.2});
+   copies(1090,600,1.12,{n:3,step:44});
+   [["Ta sama twarz",520],["Ten sam szablon",600],["Ten sam tracker",680]].forEach(([t,y])=>{ctx.strokeStyle=hexA(ACC,.35);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(1292,y);ctx.lineTo(1326,y);ctx.stroke();pill(1326,y,t,{size:21,dot:ACC,align:"left"})});
+ }},
+ {name:"mapa-kampanii",w:1600,h:1000,cap:"Ilustracja: mapa kampanii",draw(){
+   softAura(820,620,950,.7);
+   txt("Z chaosu reklam powstaje mapa kampanii.",800,150,{size:54,weight:600,align:"center",ls:-2});
+   txt("Każde powiązanie ma przesłanki. Słabe podobieństwo nie łączy.",800,204,{size:24,color:MUTED,align:"center"});
+   graph(800,570,.9,{newOne:true});
+ }},
+ {name:"znak-1080",w:1080,h:1080,cap:"Znak (avatar, post kwadratowy)",draw(){
+   softAura(560,540,760,1.3);
+   const S=4.2,w=(G.m_width-G.left)*S,h=(100-G.offset[1])*S;logo(540-w/2,540-h/2-G.offset[1]*S,S,{mOnly:true});
+ }},
+ {name:"baner-1584x396",w:1584,h:396,cap:"Baner LinkedIn",draw(){
+   softAura(1260,180,700);
+   const S=.78;logo(110,198-40*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",640,190,{size:46,weight:600,ls:-1.6});
+   txt("Fałszywe reklamy łączone w kampanie, zanim oszukają kolejne osoby.",642,240,{size:22,color:MUTED});
+ }},
+ {name:"ikona-512",w:512,h:512,cap:"Ikona aplikacji",draw(){icon(512)}},
+ {name:"ikona-180",w:180,h:180,cap:"Ikona na ekran telefonu (apple-touch-icon)",draw(){icon(180)}},
+ {name:"ikona-32",w:32,h:32,cap:"Favicon PNG",draw(){icon(32)}},
+ {name:"hero-ciemny",w:1920,h:1080,cap:"Nagłówek, wersja ciemna",draw(){
+   aura([[1450,520,1000,"#5546FF",.30],[1700,820,620,"#8D84FF",.14]],"#09090C");heroText(true);
+   copies(1500,620,1.38,{n:3,step:44,bg:"#0F0F18"});
+ }}
+];
+const list=document.getElementById("list");
+(async()=>{
+  await fonts();
+  for(const it of ITEMS){
+    const fig=document.createElement("figure");const c=document.createElement("canvas");c.width=it.w;c.height=it.h;fig.appendChild(c);
+    ctx=c.getContext("2d");it.draw();
+    const cap=document.createElement("figcaption");const a=document.createElement("a");a.textContent=`Pobierz ${it.name}.png`;a.download=`${it.name}.png`;a.href=c.toDataURL("image/png");
+    cap.innerHTML=`<span>${it.cap} · ${it.w}×${it.h}</span>`;cap.appendChild(a);fig.appendChild(cap);list.appendChild(fig);
+    it.canvas=c;
+  }
+  window.__names=()=>ITEMS.map(i=>i.name);
+  window.__png=n=>ITEMS.find(i=>i.name===n).canvas.toDataURL("image/png").split(",")[1];
+  window.__ready=true;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mimic — materiały</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+let ctx;
+const LOGO_GEOMETRY={"front": "M0 100V36.92A36.92 36.92 0 0 1 73.85 36.92V100H46.15V36.92A9.23 9.23 0 0 0 27.69 36.92V100ZM46.15 100V36.92A36.92 36.92 0 0 1 120 36.92V100H92.31V36.92A9.23 9.23 0 0 0 73.85 36.92V100Z", "back": "M-20 80V16.92A36.92 36.92 0 0 1 53.85 16.92V80H26.15V16.92A9.23 9.23 0 0 0 7.69 16.92V80ZM26.15 80V16.92A36.92 36.92 0 0 1 100 16.92V80H72.31V16.92A9.23 9.23 0 0 0 53.85 16.92V80Z", "hull": "M0 100V36.92A36.92 36.92 0 0 1 73.85 36.92L46.15 36.92A36.92 36.92 0 0 1 120 36.92V100Z", "knock": 16.923076923076927, "offset": [-20.0, -20.0], "letters": {"i1": "M131 0H158.69V100H131Z", "m": "M169.69 100V36.92A36.92 36.92 0 0 1 243.54 36.92V100H215.85V36.92A9.23 9.23 0 0 0 197.38 36.92V100ZM215.85 100V36.92A36.92 36.92 0 0 1 289.69 36.92V100H262V36.92A9.23 9.23 0 0 0 243.54 36.92V100Z", "i2": "M300.69 0H328.38V100H300.69Z", "c": "M425.79 13.88A52 52 0 1 0 425.79 86.12L405.29 66.33A23.51 23.51 0 1 1 405.29 33.67Z"}, "imic": "M131 0H158.69V100H131ZM169.69 100V36.92A36.92 36.92 0 0 1 243.54 36.92V100H215.85V36.92A9.23 9.23 0 0 0 197.38 36.92V100ZM215.85 100V36.92A36.92 36.92 0 0 1 289.69 36.92V100H262V36.92A9.23 9.23 0 0 0 243.54 36.92V100ZM300.69 0H328.38V100H300.69ZM425.79 13.88A52 52 0 1 0 425.79 86.12L405.29 66.33A23.51 23.51 0 1 1 405.29 33.67Z", "right": 425.79028500222523, "left": -20.0, "m_width": 119.99999999999999, "xh": 100};
+const INK="#0E0E11",MUTED="#6B6B74",ACC="#5546FF",GREY="#B4B4BE";
+const CAMPC={A:"#A855F7",B:"#5546FF",C:"#7C9CFF"};
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const lerp=(a,b,k)=>a+(b-a)*k;
+function hexA(h,a){const n=parseInt(h.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+function txt(s,x,y,{size=40,weight=400,color=INK,align="left",ls=0,base="alphabetic"}={}){ctx.font=`${weight} ${size}px "Geist"`;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline=base;ctx.letterSpacing=ls+"px";ctx.fillText(s,x,y);ctx.letterSpacing="0px"}
+function wrap(text,x,y,maxW,lh,o){ctx.font=`${o.weight||400} ${o.size}px "Geist"`;ctx.letterSpacing=(o.ls||0)+"px";const words=text.split(" ");let line="",yy=y;const lines=[];for(const w of words){const test=line?line+" "+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);ctx.letterSpacing="0px";lines.forEach((l,i)=>txt(l,x,y+i*lh,o));return y+(lines.length-1)*lh}
+
+function aura(blobs,bg="#FFFFFF"){
+  const w=ctx.canvas.width,h=ctx.canvas.height;ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+  for(const [x,y,r,c,a] of blobs){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,hexA(c,a));g.addColorStop(.55,hexA(c,a*.45));g.addColorStop(1,hexA(c,0));ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
+}
+function softAura(x,y,r,a=1){aura([[x,y,r,"#7B6CFF",.13*a],[x+r*.45,y+r*.22,r*.7,"#9AA8FF",.11*a]])}
+
+const TINTS=[[248,70,88,76],[232,60,90,80],[262,55,90,78],[240,40,92,82],[255,65,88,74],[226,55,91,79],[270,45,90,80],[244,50,93,83],[236,65,89,77]];
+const DOMAINS=["witryna-1.test","oferta-dnia.test","news-24.test","portal-7.test","wiadomosci.test","okazja-pl.test","raport-x.test","info-now.test","strona-9.test"];
+function card(x,y,s,v,a=1,{shadow=true}={}){
+  const w=360,h=250,[hue,sat,l1,l2]=TINTS[v%TINTS.length];
+  ctx.save();ctx.globalAlpha*=a;ctx.translate(x,y);ctx.scale(s,s);
+  if(shadow){ctx.shadowColor="rgba(30,30,70,.10)";ctx.shadowBlur=60;ctx.shadowOffsetY=22}
+  ctx.fillStyle="#fff";rr(ctx,-w/2,-h/2,w,h,26);ctx.fill();
+  ctx.shadowColor="transparent";ctx.strokeStyle="#ECECF2";ctx.lineWidth=1.2;ctx.stroke();
+  const g=ctx.createLinearGradient(-w/2,-h/2,w/2,-h/2+130);g.addColorStop(0,`hsl(${hue} ${sat}% ${l1}%)`);g.addColorStop(1,`hsl(${hue+18} ${sat}% ${l2}%)`);
+  ctx.fillStyle=g;rr(ctx,-w/2+16,-h/2+16,w-32,118,16);ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(-w/2+78,-h/2+64,20,0,7);ctx.fill();
+  ctx.beginPath();ctx.ellipse(-w/2+78,-h/2+134,40,32,0,Math.PI,0);ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.6)";rr(ctx,-w/2+150,-h/2+46,150,12,6);ctx.fill();rr(ctx,-w/2+150,-h/2+68,100,12,6);ctx.fill();
+  ctx.fillStyle="#24242B";rr(ctx,-w/2+20,-h/2+152,250,13,6.5);ctx.fill();rr(ctx,-w/2+20,-h/2+174,170,13,6.5);ctx.fill();
+  ctx.fillStyle="#E7E7EC";rr(ctx,-w/2+20,-h/2+198,300,9,4.5);ctx.fill();
+  txt(DOMAINS[v%DOMAINS.length],-w/2+20,h/2-16,{size:13,color:"#8E8E98"});
+  ctx.fillStyle=`hsl(${hue} 70% 62%)`;rr(ctx,w/2-96,h/2-36,76,24,12);ctx.fill();
+  ctx.restore();
+}
+function pill(x,y,text,{color=INK,dot=null,size=20,bg="#fff",border="#E6E6EE",weight=500,align="center",shadow=true}={}){
+  ctx.save();ctx.font=`${weight} ${size}px "Geist"`;const tw=ctx.measureText(text).width;const pad=size*0.9,dw=dot?size*1.1:0;const w=tw+pad*2+dw,h=size*2.1;
+  const x0=align==="center"?x-w/2:align==="right"?x-w:x;
+  if(shadow){ctx.shadowColor="rgba(30,30,70,.08)";ctx.shadowBlur=24;ctx.shadowOffsetY=8}ctx.fillStyle=bg;rr(ctx,x0,y-h/2,w,h,h/2);ctx.fill();ctx.shadowColor="transparent";
+  ctx.strokeStyle=border;ctx.lineWidth=1.2;ctx.stroke();
+  if(dot){ctx.fillStyle=dot;ctx.beginPath();ctx.arc(x0+pad+size*0.3,y,size*0.3,0,7);ctx.fill()}
+  txt(text,x0+pad+dw,y+1,{size,weight,color,base:"middle"});ctx.restore();return w;
+}
+function qpts(x1,y1,x2,y2,b,steps=30){const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,qx=mx-dy*b,qy=my+dx*b,p=[];for(let i=0;i<=steps;i++){const u=i/steps;p.push([(1-u)*(1-u)*x1+2*(1-u)*u*qx+u*u*x2,(1-u)*(1-u)*y1+2*(1-u)*u*qy+u*u*y2])}return p}
+function stroke(p){ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);for(const q of p.slice(1))ctx.lineTo(q[0],q[1]);ctx.stroke()}
+
+function graph(cx,cy,s,{labels=true,reject=true,newOne=false,seed=11}={}){
+  const R=rng(seed);const CL={A:{c:[-460,30],n:10,label:"Kampania A"},B:{c:[0,-40],n:8,label:"Kampania B"},C:{c:[460,60],n:7,label:"Kampania C"}};
+  const nodes=[];for(const [k,cl] of Object.entries(CL))for(let i=0;i<cl.n;i++){const a=i*2.39996,r=i?42*Math.sqrt(i):0;nodes.push({camp:k,x:cx+(cl.c[0]+Math.cos(a)*r*1.1)*s,y:cy+(cl.c[1]+Math.sin(a)*r)*s})}
+  const noise=[{x:cx-200*s,y:cy+300*s},{x:cx+700*s,y:cy-200*s}];
+  const edges=[];for(const k of Object.keys(CL)){const g=nodes.filter(n=>n.camp===k);for(let i=1;i<g.length;i++)edges.push([g[i],g[Math.floor(R()*i)],.4+R()*.6]);for(let x=0;x<Math.floor(g.length*.4);x++){const i=Math.floor(R()*g.length),j=Math.floor(R()*g.length);if(i!==j)edges.push([g[i],g[j],.3+R()*.4])}}
+  for(const k of Object.keys(CL)){const g=nodes.filter(n=>n.camp===k);const mx=g.reduce((a,n)=>a+n.x,0)/g.length,my=g.reduce((a,n)=>a+n.y,0)/g.length;const r=Math.max(...g.map(n=>Math.hypot(n.x-mx,n.y-my)))+70*s;
+    const gr=ctx.createRadialGradient(mx,my,0,mx,my,r);gr.addColorStop(0,hexA(CAMPC[k],.18));gr.addColorStop(.7,hexA(CAMPC[k],.08));gr.addColorStop(1,hexA(CAMPC[k],0));ctx.fillStyle=gr;ctx.beginPath();ctx.arc(mx,my,r,0,7);ctx.fill();
+    if(newOne&&k==="B"){ctx.strokeStyle=hexA(ACC,.45);ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,r*.82,0,7);ctx.stroke()}
+    if(labels){txt(CL[k].label,mx,my+r*.82+38*s,{size:24*s,weight:600,align:"center",ls:-.5*s});txt(`${CL[k].n+(newOne&&k==="B"?1:0)} materiałów`,mx,my+r*.82+64*s,{size:16*s,color:MUTED,align:"center"})}}
+  ctx.lineCap="round";for(const [a,b,w] of edges){ctx.strokeStyle=hexA(INK,.27);ctx.lineWidth=(1+w*2.4)*s;stroke(qpts(a.x,a.y,b.x,b.y,.08))}
+  if(reject){const a=noise[0],b=nodes.find(n=>n.camp==="A");const p=qpts(a.x,a.y,b.x,b.y,.1);ctx.save();ctx.strokeStyle="#C3C3CC";ctx.lineWidth=2*s;ctx.setLineDash([5*s,8*s]);stroke(p);ctx.restore();const m=p[15];ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(m[0],m[1],14*s,0,7);ctx.fill();ctx.strokeStyle="#9A9AA6";ctx.lineWidth=2.4*s;ctx.beginPath();ctx.moveTo(m[0]-6*s,m[1]-6*s);ctx.lineTo(m[0]+6*s,m[1]+6*s);ctx.moveTo(m[0]+6*s,m[1]-6*s);ctx.lineTo(m[0]-6*s,m[1]+6*s);ctx.stroke()}
+  if(newOne){const np={x:cx+125*s,y:cy-150*s};nodes.filter(n=>n.camp==="B").sort((p,q)=>Math.hypot(p.x-np.x,p.y-np.y)-Math.hypot(q.x-np.x,q.y-np.y)).slice(0,3).forEach((m,i)=>{ctx.strokeStyle=hexA(ACC,1-i*.2);ctx.lineWidth=(3.2-i*.6)*s;stroke(qpts(np.x,np.y,m.x,m.y,.08))});ctx.save();ctx.fillStyle=ACC;ctx.shadowColor=hexA(ACC,.5);ctx.shadowBlur=20*s;ctx.beginPath();ctx.arc(np.x,np.y,10*s,0,7);ctx.fill();ctx.restore()}
+  for(const n of nodes){ctx.fillStyle=INK;ctx.beginPath();ctx.arc(n.x,n.y,8.5*s,0,7);ctx.fill()}
+  for(const n of noise){ctx.fillStyle="#B9B9C2";ctx.beginPath();ctx.arc(n.x,n.y,8.5*s,0,7);ctx.fill()}
+}
+
+const G=LOGO_GEOMETRY;const LP={front:new Path2D(G.front),back:new Path2D(G.back),hull:new Path2D(G.hull),imic:new Path2D(G.imic)};
+function logoW(S){return(G.right-G.left)*S}
+function logo(lx,y0,S,{color=INK,accent=ACC,mOnly=false}={}){const x0=lx-G.left*S;
+  const cw=ctx.canvas.width,ch=ctx.canvas.height;const off=document.createElement("canvas");off.width=cw;off.height=ch;const o=off.getContext("2d");
+  o.setTransform(S,0,0,S,x0,y0);o.fillStyle=accent;o.fill(LP.back);o.globalCompositeOperation="destination-out";o.strokeStyle="#000";o.lineWidth=G.knock;o.lineJoin="round";o.fill(LP.hull);o.stroke(LP.hull);
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(off,0,0);ctx.restore();
+  ctx.save();ctx.translate(x0,y0);ctx.scale(S,S);ctx.fillStyle=color;ctx.fill(LP.front);if(!mOnly)ctx.fill(LP.imic);ctx.restore();
+}
+function copies(cx,cy,s,{n=3,step=48,gap=9,bg="#FFFFFF"}={}){
+  for(let i=n;i>=1;i--){const x=cx-step*i*s,y=cy-step*i*s;ctx.save();ctx.fillStyle=hexA(ACC,[.62,.34,.16,.08][i-1]);rr(ctx,x-180*s,y-125*s,360*s,250*s,26*s);ctx.fill();ctx.restore()}
+  ctx.save();ctx.fillStyle=bg;rr(ctx,cx-180*s-gap*s,cy-125*s-gap*s,360*s+2*gap*s,250*s+2*gap*s,(26+gap)*s);ctx.fill();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.restore();
+  card(cx,cy,s,0,1);
+}
+
+async function fonts(){await Promise.all(['400 40px "Geist"','500 40px "Geist"','600 40px "Geist"'].map(f=>document.fonts.load(f)))}
+
+</script>
+<style>
+body{margin:0;background:#F5F5F7;font-family:Geist,system-ui,sans-serif;color:#0E0E11}
+.wrap{max-width:1280px;margin:0 auto;padding:64px 32px 120px}
+h1{font-weight:600;font-size:44px;letter-spacing:-.03em;margin:0 0 8px}
+p.lead{color:#6B6B74;margin:0 0 48px;font-size:17px}
+figure{margin:0 0 48px}
+figure canvas{width:100%;height:auto;border-radius:18px;box-shadow:0 1px 0 #e6e6ec,0 24px 60px rgba(30,30,70,.07);background:#fff;display:block}
+figcaption{display:flex;justify-content:space-between;align-items:center;color:#6B6B74;font-size:14px;margin-top:12px}
+figcaption a{color:#5546FF;text-decoration:none;font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Materiały</h1>
+<p class="lead">Banery i ilustracje na stronę, prezentację i do filmu. Każdy można pobrać jako PNG.</p>
+<div id="list"></div>
+</div>
+<script>
+const CLAIM1="Więcej zaufania",CLAIM2="do tego, co widzisz.";
+const DESC="mimic łączy fałszywe reklamy w kampanie, żeby szybciej chronić ludzi przed oszustwem.";
+function buttons(x,y,dark=false){
+  ctx.fillStyle=dark?"#F4F4F1":INK;rr(ctx,x,y-32,236,64,32);ctx.fill();txt("Zobacz demo",x+118,y+1,{size:22,weight:600,color:dark?INK:"#fff",align:"center",base:"middle"});
+  ctx.save();ctx.strokeStyle=dark?"rgba(255,255,255,.25)":"#DADAE2";ctx.lineWidth=1.4;rr(ctx,x+256,y-32,236,64,32);ctx.stroke();ctx.restore();txt("Jak to działa",x+256+118,y+1,{size:22,weight:500,color:dark?"#F4F4F1":INK,align:"center",base:"middle"});
+}
+function heroText(dark){
+  const c=dark?"#F4F4F1":INK,m=dark?"#9A9AA6":MUTED;
+  logo(120,96,.42,dark?{color:"#F4F4F1",accent:"#8D84FF"}:{});
+  txt(CLAIM1,120,470,{size:100,weight:600,ls:-4,color:c});txt(CLAIM2,120,578,{size:100,weight:600,ls:-4,color:c});
+  wrap(DESC,124,660,620,40,{size:28,color:m,ls:-.3});
+  buttons(124,800,dark);
+}
+function icon(n){
+  ctx.clearRect(0,0,n,n);ctx.fillStyle=INK;rr(ctx,0,0,n,n,n*0.23);ctx.fill();
+  const S=n*0.68/Math.max(G.m_width-G.left,100-G.offset[1]),w=(G.m_width-G.left)*S,h=(100-G.offset[1])*S;
+  logo(n/2-w/2,n/2-h/2-G.offset[1]*S,S,{mOnly:true,color:"#F4F4F1",accent:"#8D84FF"});
+}
+const ITEMS=[
+ {name:"hero-strona",w:1920,h:1080,cap:"Nagłówek strony",draw(){
+   softAura(1420,560,950);heroText(false);
+   copies(1500,620,1.38,{n:3,step:44});
+   pill(1500,880,"4 reklamy, 1 kampania",{size:22,dot:ACC});
+ }},
+ {name:"okladka",w:1920,h:1080,cap:"Okładka prezentacji",draw(){
+   softAura(980,520,1000);
+   const S=2.35;logo(960-logoW(S)/2,455-60*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",960,700,{size:44,weight:500,align:"center",color:"#3A3A44",ls:-1});
+ }},
+ {name:"og-1200x630",w:1200,h:630,cap:"Podgląd linku (Open Graph)",draw(){
+   softAura(760,240,640);
+   const S=1.35;logo(600-logoW(S)/2,265-60*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",600,440,{size:40,weight:500,align:"center",color:"#3A3A44",ls:-.9});
+ }},
+ {name:"kampania",w:1600,h:1000,cap:"Sekcja „problem”: za fałszywką stoi kampania",draw(){
+   softAura(1100,520,820);
+   txt("Za każdą fałszywką",120,400,{size:66,weight:600,ls:-2.6});txt("stoi kampania.",120,474,{size:66,weight:600,ls:-2.6});
+   wrap("Ta sama twarz, ten sam szablon, ten sam tracker. Zablokowana reklama wraca pod nowym adresem, dopóki nie zobaczysz całości.",122,550,540,38,{size:25,color:MUTED,ls:-.2});
+   copies(1090,600,1.12,{n:3,step:44});
+   [["Ta sama twarz",520],["Ten sam szablon",600],["Ten sam tracker",680]].forEach(([t,y])=>{ctx.strokeStyle=hexA(ACC,.35);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(1292,y);ctx.lineTo(1326,y);ctx.stroke();pill(1326,y,t,{size:21,dot:ACC,align:"left"})});
+ }},
+ {name:"mapa-kampanii",w:1600,h:1000,cap:"Ilustracja: mapa kampanii",draw(){
+   softAura(820,620,950,.7);
+   txt("Z chaosu reklam powstaje mapa kampanii.",800,150,{size:54,weight:600,align:"center",ls:-2});
+   txt("Każde powiązanie ma przesłanki. Słabe podobieństwo nie łączy.",800,204,{size:24,color:MUTED,align:"center"});
+   graph(800,570,.9,{newOne:true});
+ }},
+ {name:"znak-1080",w:1080,h:1080,cap:"Znak (avatar, post kwadratowy)",draw(){
+   softAura(560,540,760,1.3);
+   const S=4.2,w=(G.m_width-G.left)*S,h=(100-G.offset[1])*S;logo(540-w/2,540-h/2-G.offset[1]*S,S,{mOnly:true});
+ }},
+ {name:"baner-1584x396",w:1584,h:396,cap:"Baner LinkedIn",draw(){
+   softAura(1260,180,700);
+   const S=.78;logo(110,198-40*S,S);
+   txt("Więcej zaufania do tego, co widzisz.",640,190,{size:46,weight:600,ls:-1.6});
+   txt("Fałszywe reklamy łączone w kampanie, zanim oszukają kolejne osoby.",642,240,{size:22,color:MUTED});
+ }},
+ {name:"ikona-512",w:512,h:512,cap:"Ikona aplikacji",draw(){icon(512)}},
+ {name:"ikona-180",w:180,h:180,cap:"Ikona na ekran telefonu (apple-touch-icon)",draw(){icon(180)}},
+ {name:"ikona-32",w:32,h:32,cap:"Favicon PNG",draw(){icon(32)}},
+ {name:"hero-ciemny",w:1920,h:1080,cap:"Nagłówek, wersja ciemna",draw(){
+   aura([[1450,520,1000,"#5546FF",.30],[1700,820,620,"#8D84FF",.14]],"#09090C");heroText(true);
+   copies(1500,620,1.38,{n:3,step:44,bg:"#0F0F18"});
+ }}
+];
+const list=document.getElementById("list");
+(async()=>{
+  await fonts();
+  for(const it of ITEMS){
+    const fig=document.createElement("figure");const c=document.createElement("canvas");c.width=it.w;c.height=it.h;fig.appendChild(c);
+    ctx=c.getContext("2d");it.draw();
+    const cap=document.createElement("figcaption");const a=document.createElement("a");a.textContent=`Pobierz ${it.name}.png`;a.download=`${it.name}.png`;a.href=c.toDataURL("image/png");
+    cap.innerHTML=`<span>${it.cap} · ${it.w}×${it.h}</span>`;cap.appendChild(a);fig.appendChild(cap);list.appendChild(fig);
+    it.canvas=c;
+  }
+  window.__names=()=>ITEMS.map(i=>i.name);
+  window.__png=n=>ITEMS.find(i=>i.name===n).canvas.toDataURL("image/png").split(",")[1];
+  window.__ready=true;
+})();
+</script>
+</body>
+</html>

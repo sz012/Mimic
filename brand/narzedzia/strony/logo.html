@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mimic — logo</title>
+<link rel="icon" href="logo/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#F5F5F7;color:#0E0E11;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:64px 32px 120px}
+h1{font-weight:600;font-size:44px;letter-spacing:-.03em;margin-bottom:8px}
+.lead{color:#6B6B74;font-size:17px;line-height:1.5;margin-bottom:40px;max-width:620px}
+h2{font-weight:600;font-size:22px;letter-spacing:-.02em;margin:56px 0 16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.tile{background:#fff;border:1px solid #E8E8EE;border-radius:20px;padding:48px 40px;display:flex;align-items:center;justify-content:center;min-height:240px;position:relative}
+.tile.dark{background:#0B0B0D;border-color:#1F1F23}
+.tile span{position:absolute;top:16px;left:20px;font-size:13px;color:#8E8E98}
+.tile img{width:min(100%,420px)}
+.wide{grid-column:span 2;min-height:380px}
+.wide img{width:min(100%,800px)}
+.sizes{display:flex;gap:40px;align-items:flex-end;flex-wrap:wrap}
+.sizes img{width:auto}
+@media (max-width:800px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>mimic</h1>
+<p class="lead">Litera „m” z cieniem rozpoczyna słowo, „imic” w tym samym kroju i tej samej szerokości liter, bez kropek, z ciasnymi odstępami.</p>
+<div class="grid">
+  <div class="tile wide"><span>logo</span><img src="logo/logo.svg"></div>
+  <div class="tile dark"><span>ciemne</span><img src="logo/logo-dark.svg"></div>
+  <div class="tile dark"><span>znak, ciemny</span><img src="logo/logo-mark-dark.svg" style="width:170px"></div>
+  <div class="tile"><span>jednokolorowe</span><img src="logo/logo-mono.svg"></div>
+  <div class="tile"><span>znak</span><img src="logo/logo-mark.svg" style="width:170px"></div>
+</div>
+<h2>Małe rozmiary</h2>
+<div class="tile" style="justify-content:flex-start;min-height:0;padding:40px 32px">
+  <div class="sizes">
+    <img src="logo/logo.svg" style="height:24px"><img src="logo/logo.svg" style="height:32px"><img src="logo/logo.svg" style="height:48px">
+    <img src="logo/favicon.svg" style="height:16px"><img src="logo/favicon.svg" style="height:32px"><img src="logo/logo-mark.svg" style="height:48px">
+  </div>
+</div>
+</div>
+</body>
+</html>
