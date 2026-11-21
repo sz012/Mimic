@@ -1,0 +1,29 @@
+{
+  "name": "mimic",
+  "tagline": "Więcej zaufania do tego, co widzisz.",
+  "logo": {
+    "full": "logo/logo.svg",
+    "full_dark": "logo/logo-dark.svg",
+    "mono": "logo/logo-mono.svg",
+    "mono_white": "logo/logo-mono-white.svg",
+    "mark": "logo/logo-mark.svg",
+    "mark_dark": "logo/logo-mark-dark.svg",
+    "favicon": "logo/favicon.svg",
+    "icon_png": "materialy/ikona-512.png",
+    "favicon_png": "materialy/ikona-32.png",
+    "touch_icon_png": "materialy/ikona-180.png"
+  },
+  "colors": {
+    "light": {"bg": "#FFFFFF", "surface": "#F5F5F7", "text": "#0E0E11", "muted": "#6B6B74", "primary": "#5546FF", "accent": "#A855F7", "danger": "#D64550", "ok": "#12B39A", "border": "#E6E6EE"},
+    "dark": {"bg": "#09090C", "surface": "#141418", "text": "#F4F4F1", "muted": "#9A9AA6", "primary": "#8D84FF", "accent": "#C08BFA", "danger": "#F0717A", "ok": "#3CC8B0", "border": "#26262E"}
+  },
+  "font": {
+    "sans": "Geist",
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
+  },
+  "campaign_palette": ["#5546FF", "#A855F7", "#3B82F6", "#14B8A6", "#F59E0B", "#EC4899", "#64748B", "#84CC16"],
+  "group_colors": {"text": "#3B82F6", "visual": "#F59E0B", "infra": "#14B8A6", "template": "#EC4899", "person": "#A855F7"},
+  "singleton_color": "#B9B9C2",
+  "weak_edge_color": "#D2D2DB",
+  "strong_edge_color": "#0E0E11"
+}

@@ -22,6 +22,8 @@ from engine.schema import Evidence, Item
 CACHE_DIR = Path(os.environ.get("MIMIC_CACHE_DIR", "data/cache"))
 UPLOAD_DIR = CACHE_DIR / "uploads"
 ADLIB_DIR = CACHE_DIR / "adlib"
+ASSETS = Path(__file__).parent / "assets"
+CLAIM = "Więcej zaufania do tego, co widzisz."
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 METHODS = {"components": "składowe grafu", "average": "średnie wiązanie"}
 
@@ -354,11 +356,19 @@ def features_tab(ws: Workspace) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Mimic", layout="wide")
+    icon = ASSETS / "ikona-32.png"
+    st.set_page_config(
+        page_title="Mimic", page_icon=str(icon) if icon.is_file() else None, layout="wide"
+    )
     root = raw_dir()
-    st.title("Mimic")
+    logo = ASSETS / "logo.svg"
+    if logo.is_file():
+        st.image(str(logo), width=180)
+    else:
+        st.title("Mimic")
     st.caption(
-        "Łączenie podejrzanych reklam i stron w kampanie, z przesłankami dla każdego połączenia."
+        f"{CLAIM} Łączenie podejrzanych reklam i stron w kampanie, "
+        "z przesłankami dla każdego połączenia."
     )
     ws, is_demo = workspace(str(root))
     with st.sidebar:
