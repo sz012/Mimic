@@ -5,7 +5,15 @@ from engine.similarity import comparators as cmp
 from engine.similarity.context import Context
 from engine.similarity.weights import DEFAULT, Weights
 
-FORMULA = "wynik = 1 - Π(1 - waga_i × zgodność_i) po cechach dostępnych po obu stronach; brak danych nie obniża wyniku"
+FORMULAS = {
+    "features": "wynik = 1 - Π(1 - waga_i × zgodność_i) po cechach dostępnych po obu stronach; brak danych nie obniża wyniku",
+    "groups": "wynik = 1 - Π(1 - max_g) po grupach cech, gdzie max_g to największy wkład (waga × zgodność) w grupie; brak danych nie obniża wyniku",
+}
+FORMULA = FORMULAS[DEFAULT.combine]
+
+
+def formula(weights: Weights = DEFAULT) -> str:
+    return FORMULAS[weights.combine]
 
 
 def _available(item: Item, name: str) -> Feature | None:
@@ -43,6 +51,15 @@ def combine(contributions: list[float]) -> float:
     return 1.0 - remaining
 
 
+def combine_groups(contributions: list[tuple[str, float]], mode: str = "features") -> float:
+    if mode == "groups":
+        best: dict[str, float] = {}
+        for group, c in contributions:
+            best[group] = max(best.get(group, 0.0), c)
+        return combine(list(best.values()))
+    return combine([c for _, c in contributions])
+
+
 def compare(
     a: Item,
     b: Item,
@@ -52,7 +69,7 @@ def compare(
 ) -> Edge | None:
     names = sorted(set(a.features) | set(b.features))
     evidence: list[Evidence] = []
-    contributions: list[float] = []
+    contributions: list[tuple[str, float]] = []
     for name in names:
         group = (a.features.get(name) or b.features.get(name)).group
         fa, fb = _available(a, name), _available(b, name)
@@ -66,6 +83,8 @@ def compare(
             res = cmp.screenshot(
                 name, fa.value, fb.value, context, _extra_images(a), _extra_images(b)
             )
+        elif name == "text.entities":
+            res = spec.comparator(name, *_without_person_names(fa.value, fb.value, a, b), context)
         else:
             res = spec.comparator(name, fa.value, fb.value, context)
         confidence = min(fa.confidence, fb.confidence) if fa.confidence and fb.confidence else 1.0
@@ -81,10 +100,10 @@ def compare(
                 f"{spec.label}: {res.note}",
             )
         )
-        contributions.append(weight * res.score)
+        contributions.append((group, weight * res.score))
     if not contributions:
         return None
-    score = round(combine(contributions), 4)
+    score = round(combine_groups(contributions, weights.combine), 4)
     if score <= min_score:
         return None
     evidence.sort(key=lambda e: (-(e.weight * e.score), e.weight == 0.0, e.feature))
@@ -110,3 +129,28 @@ def _screenshot_fallback(a: Item, b: Item, fa: Feature | None, fb: Feature | Non
             "visual.screenshot", "visual", [], fa.confidence, "zasoby jako zastępstwo zrzutu"
         )
     return fa, fb
+
+
+def _person_tokens(item: Item) -> set[str]:
+    feat = _available(item, "person.names")
+    if feat is None:
+        return set()
+    out = set()
+    for name in feat.value:
+        low = str(name).lower()
+        out.add(low)
+        out.update(low.split())
+    return out
+
+
+def _without_person_names(va: list, vb: list, a: Item, b: Item) -> tuple[list, list]:
+    names = _person_tokens(a) & _person_tokens(b)
+    if not names:
+        return va, vb
+
+    def keep(v: str) -> bool:
+        return not (
+            v in names or any(v.startswith(n[: max(4, len(n) - 2)]) for n in names if len(n) > 4)
+        )
+
+    return [v for v in va if keep(v)], [v for v in vb if keep(v)]

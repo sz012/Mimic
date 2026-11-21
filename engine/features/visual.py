@@ -12,9 +12,11 @@ from PIL import Image, ImageStat
 from engine.schema import Feature, Item
 
 GROUP = "visual"
+VERSION = "2"
 MIN_SIDE = 80
 MAX_ASSETS = 150
 VIDEO_STEP_SECONDS = 2
+MAX_HAR_BYTES = 120_000_000
 MAX_IMAGE_BYTES = 15_000_000
 ASSET_DIR_SUFFIX = "_files"
 ASSET_DIR_NAMES = ("resources",)
@@ -72,7 +74,7 @@ def _screenshot_entries(item: Item, raw_dir: Path) -> list[dict]:
 
 
 def _asset_dirs(item: Item, raw_dir: Path) -> list[Path]:
-    dirs = []
+    dirs = [raw_dir / rel for rel in item.paths.get("assets", []) if (raw_dir / rel).is_dir()]
     for rel in item.paths.get("html", []):
         html = raw_dir / rel
         cand = html.with_name(html.stem + ASSET_DIR_SUFFIX)
@@ -115,6 +117,8 @@ def _asset_entries_from_har(item: Item, raw_dir: Path) -> list[dict]:
     out, seen = [], set()
     for rel in item.paths.get("har", []):
         try:
+            if (raw_dir / rel).stat().st_size > MAX_HAR_BYTES:
+                continue
             har = json.loads((raw_dir / rel).read_bytes())
         except (OSError, ValueError):
             continue

@@ -97,6 +97,7 @@ def demo_items() -> list[Item]:
             "demoC",
             {"html": ["demo/C1/index.html"]},
             {
+                "text.exact": _f("text.exact", ["c1c1c1c1"]),
                 "text.narrative": _f("text.narrative", _story(lottery)),
                 "text.title": _f("text.title", ["wygrana", "nagroda"]),
             },

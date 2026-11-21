@@ -29,6 +29,29 @@ FEATURES: dict[str, Spec] = {
     "visual.video": Spec(0.6, cmp.image_set, "te same klatki wideo"),
     "person.names": Spec(0.45, cmp.set_overlap, "ta sama osoba publiczna"),
     "person.faces": Spec(0.6, cmp.generic, "ta sama twarz"),
+    "infra.tracker_ids": Spec(0.95, cmp.shared_values, "ten sam identyfikator trackera/piksela"),
+    "infra.ad_account": Spec(0.9, cmp.shared_values, "to samo konto reklamowe"),
+    "infra.url_params": Spec(0.8, cmp.shared_values, "te same identyfikatory kampanii w adresie"),
+    "infra.domain": Spec(0.9, cmp.shared_values, "ta sama domena"),
+    "infra.hosts": Spec(0.3, cmp.set_overlap, "wspólne hosty"),
+    "infra.third_party_hosts": Spec(0.5, cmp.set_overlap, "wspólne hosty zewnętrzne"),
+    "infra.redirect_chain": Spec(0.6, cmp.set_overlap, "wspólny łańcuch przekierowań"),
+    "infra.endpoints": Spec(0.7, cmp.set_overlap, "te same ścieżki formularzy i API"),
+    "infra.favicon": Spec(0.7, cmp.shared_values, "ta sama favicona"),
+    "infra.ip": Spec(0.5, cmp.shared_values, "ten sam adres IP serwera"),
+    "infra.server": Spec(0.15, cmp.set_overlap, "ten sam serwer/oprogramowanie"),
+    "infra.nameservers": Spec(0.5, cmp.shared_values, "te same serwery nazw"),
+    "infra.cert_sans": Spec(0.9, cmp.shared_values, "domeny z tego samego certyfikatu"),
+    "infra.registrar": Spec(0.1, cmp.shared_values, "ten sam rejestrator"),
+    "infra.created": Spec(0.4, cmp.date_proximity, "bliskie daty rejestracji domen"),
+    "template.dom_simhash": Spec(0.7, cmp.hash_distance, "podobna struktura strony (DOM)"),
+    "template.inline_scripts": Spec(0.8, cmp.set_overlap, "te same skrypty wbudowane"),
+    "template.scripts": Spec(0.6, cmp.set_overlap, "te same pliki skryptów"),
+    "template.css_classes": Spec(0.6, cmp.set_overlap, "te same klasy CSS"),
+    "template.asset_names": Spec(0.6, cmp.set_overlap, "te same nazwy plików zasobów"),
+    "template.form_fields": Spec(0.5, cmp.set_overlap, "te same pola formularzy"),
+    "template.html_comments": Spec(0.7, cmp.set_overlap, "te same komentarze HTML"),
+    "template.meta": Spec(0.2, cmp.set_overlap, "te same metadane strony"),
 }
 
 GROUP_DEFAULT_WEIGHT = {"infra": 0.8, "template": 0.7, "text": 0.3, "visual": 0.5, "person": 0.4}
@@ -39,6 +62,8 @@ class Weights:
     features: dict[str, Spec] = field(default_factory=lambda: dict(FEATURES))
     group_default: dict[str, float] = field(default_factory=lambda: dict(GROUP_DEFAULT_WEIGHT))
     scale: dict[str, float] = field(default_factory=dict)
+    combine: str = "features"
+    kit_as_campaign: bool = False
 
     def spec(self, name: str, group: str) -> Spec:
         base = self.features.get(name)

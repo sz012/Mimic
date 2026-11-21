@@ -8,6 +8,7 @@ from engine.features.text import load_docs
 from engine.schema import Feature, Item
 
 GROUP = "person"
+VERSION = "1"
 
 REFERENCE_PERSONS = [
     "Rafał Brzoska",
