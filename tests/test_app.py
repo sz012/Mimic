@@ -28,3 +28,14 @@ def test_app_runs_on_files(raw, tmp_path, monkeypatch):
     next(b for b in at.button if b.label == "Analizuj URL").click().run()
     assert any("nowy wzorzec" in i.value or "za mało danych" in i.value for i in at.info)
     assert not at.exception
+
+
+def test_adlib_tab_without_token(raw, tmp_path, monkeypatch):
+    monkeypatch.setenv("MIMIC_RAW_DIR", str(raw))
+    monkeypatch.setenv("MIMIC_DB_PATH", str(tmp_path / "mimic.sqlite"))
+    monkeypatch.setenv("MIMIC_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.delenv("META_AD_LIBRARY_TOKEN", raising=False)
+    at = AppTest.from_file(APP, default_timeout=120).run()
+    next(r for r in at.radio if r.label == "Wejście").set_value("Biblioteka reklam").run()
+    assert not at.exception
+    assert any("META_AD_LIBRARY_TOKEN" in i.value for i in at.info)

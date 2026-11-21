@@ -16,7 +16,7 @@ from engine.features import ocr
 from engine.schema import Feature, Item
 
 GROUP = "text"
-VERSION = "3"
+VERSION = "4"
 NUM_PERM = 128
 SHINGLE = 3
 MAX_HTML_BYTES = 8_000_000
@@ -580,7 +580,7 @@ def extract(item: Item, raw_dir: Path) -> dict[str, Feature]:
         if pr
         else Feature.missing("text.prices", GROUP, f"{source} kwoty")
     )
-    exact_src = narrative if len(ntoks) >= 15 else title
+    exact_src = narrative if len(ntoks) >= 15 or len(tokens(title)) < 4 else title
     exact_toks = tokens(exact_src)
     feats["text.exact"] = (
         Feature(

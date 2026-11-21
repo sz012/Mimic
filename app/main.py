@@ -21,6 +21,7 @@ from engine.schema import Evidence, Item
 
 CACHE_DIR = Path(os.environ.get("MIMIC_CACHE_DIR", "data/cache"))
 UPLOAD_DIR = CACHE_DIR / "uploads"
+ADLIB_DIR = CACHE_DIR / "adlib"
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 METHODS = {"components": "składowe grafu", "average": "średnie wiązanie"}
 
@@ -161,10 +162,15 @@ def run_upload(files: list[tuple[str, bytes]], url: str | None) -> None:
 
 
 def analysis_tab(ws: Workspace, root: Path) -> None:
-    source = st.radio("Wejście", ["Materiał ze zbioru", "Pliki", "URL"], horizontal=True)
+    source = st.radio(
+        "Wejście", ["Materiał ze zbioru", "Pliki", "URL", "Biblioteka reklam"], horizontal=True
+    )
     if source == "Materiał ze zbioru":
         chosen = st.selectbox("Materiał", [i.id for i in ws.items])
         show_analysis(ws.analyze(ws.by_id[chosen]), root)
+        return
+    if source == "Biblioteka reklam":
+        adlib_section(ws, root)
         return
     if source == "Pliki":
         files = st.file_uploader(
@@ -187,6 +193,57 @@ def analysis_tab(ws: Workspace, root: Path) -> None:
     if item.id not in ws.by_id and st.button("Dodaj do zbioru i przelicz kampanie"):
         assignment = ws.add(item, UPLOAD_DIR)
         st.success(f"Dodano {item.id}. Przypisanie: {assignment.campaign_id or 'nowy wzorzec'}")
+
+
+def adlib_section(ws: Workspace, root: Path) -> None:
+    st.caption(
+        "Wyszukiwanie w publicznej bibliotece reklam Meta (wymaga META_AD_LIBRARY_TOKEN). "
+        "Pobierane są tylko metadane reklam, nigdy strony docelowe."
+    )
+    if not os.environ.get("META_AD_LIBRARY_TOKEN"):
+        st.info("Brak META_AD_LIBRARY_TOKEN w środowisku: wyszukiwanie jest wyłączone.")
+    c1, c2, c3 = st.columns([3, 1, 1])
+    terms = c1.text_input(
+        "Szukane słowa", value=os.environ.get("MIMIC_ADLIB_QUERIES", "").split(",")[0]
+    )
+    countries = c2.text_input("Kraje", value="PL")
+    pages = c3.number_input("Strony wyników", 1, 5, 1)
+    if terms and st.button("Wyszukaj w bibliotece reklam"):
+        results, error = ws.search_ads(
+            terms,
+            [c.strip().upper() for c in countries.split(",") if c.strip()],
+            ADLIB_DIR,
+            int(pages),
+        )
+        if error:
+            st.error(error)
+            return
+        st.session_state["adlib_results"] = results
+    results = st.session_state.get("adlib_results") or []
+    if not results:
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "reklama": item.id,
+                    "wynik": a.card["verdict"],
+                    "dopasowanie": a.card["score"],
+                    "podstawa": a.card["basis"],
+                }
+                for item, a in results
+            ]
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+    chosen = st.selectbox("Szczegóły reklamy", [item.id for item, _ in results])
+    show_analysis({item.id: a for item, a in results}[chosen], root)
+    fresh = [item for item, _ in results if item.id not in ws.by_id]
+    if fresh and st.button(f"Dodaj {len(fresh)} reklam do zbioru i przelicz kampanie"):
+        for item in fresh:
+            ws.add(item, ADLIB_DIR)
+        st.success(f"Dodano {len(fresh)} reklam.")
 
 
 def campaigns_tab(ws: Workspace, root: Path) -> None:

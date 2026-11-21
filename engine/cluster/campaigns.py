@@ -15,6 +15,7 @@ from engine.similarity.weights import DEFAULT
 MARGIN = 0.05
 CASE_LINKS_DEFAULT = True
 UPLOAD_CASE = "upload"
+NON_CASE_IDS = frozenset({UPLOAD_CASE, "adlib"})
 Method = Literal["components", "average"]
 
 
@@ -58,7 +59,7 @@ def campaign_id(member_ids: Iterable[str]) -> str:
 def _case_pairs(items: list[Item]) -> list[tuple[str, str]]:
     by_case: dict[str, list[str]] = {}
     for item in items:
-        if item.case_id and item.case_id != UPLOAD_CASE:
+        if item.case_id and item.case_id not in NON_CASE_IDS:
             by_case.setdefault(item.case_id, []).append(item.id)
     return [(ids[0], other) for ids in by_case.values() for other in ids[1:]]
 

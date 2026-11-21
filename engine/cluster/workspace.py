@@ -19,6 +19,7 @@ from engine.schema import Assignment, Edge, Item
 from engine.similarity import Context, Weights, build_context, compare
 from engine.similarity.compare import formula
 from engine.similarity.weights import DEFAULT
+from engine.sources.adlib import AdLibraryUnavailable, AdQuery, materialize, search
 from engine.store import Store
 
 MIN_SIMILAR = 0.05
@@ -189,6 +190,26 @@ class Workspace:
             self.store.upsert_item(item)
             self.store.save_assignment(assignment)
         return assignment
+
+    def search_ads(
+        self,
+        terms: str,
+        countries: list[str],
+        root: Path,
+        max_pages: int = 1,
+        transport=None,
+        access_token: str | None = None,
+    ) -> tuple[list[tuple[Item, Analysis]], str | None]:
+        try:
+            ads = search(AdQuery(terms, countries, max_pages=max_pages), transport, access_token)
+        except AdLibraryUnavailable as exc:
+            return [], f"biblioteka reklam niedostępna: {exc}"
+        results = []
+        for item in materialize(ads, root):
+            known = self.by_id.get(item.id)
+            ready = known or extract_features(item, Path(root), None)
+            results.append((ready, self.analyze(ready, Path(root))))
+        return results, None
 
     def history(self) -> list[Assignment]:
         return self.store.assignments() if self.store is not None else []
