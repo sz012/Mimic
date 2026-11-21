@@ -1,7 +1,8 @@
 import json
 from dataclasses import asdict
+from typing import get_args
 
-from engine.schema import Assignment, Edge, Evidence, Feature, Item
+from engine.schema import Assignment, Edge, Evidence, Feature, Item, Kind
 
 
 def test_missing_feature_is_explicit_not_zero():
@@ -25,3 +26,9 @@ def test_edge_roundtrips_to_json():
     ev = Evidence("tracker_ids", "infra", 0.4, 1.0, ["123"], ["123"], "ten sam piksel")
     edge = Edge("1", "2", 0.8, [ev])
     assert json.loads(json.dumps(asdict(edge)))["evidence"][0]["feature"] == "tracker_ids"
+
+
+def test_assets_is_a_kind_and_listed_in_kinds():
+    assert "assets" in get_args(Kind)
+    item = Item(id="61/strona_1", case_id="61", paths={"har": ["a.har"], "assets": ["x_files"]})
+    assert item.kinds == ["har", "assets"]

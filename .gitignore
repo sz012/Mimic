@@ -2,6 +2,7 @@
 task/
 data/raw/
 data/cache/
+models/
 *.har
 *.mp4
 *.mhtml
