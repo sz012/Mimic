@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,10 +12,11 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from datasketch import MinHash
 
+from engine.features import ocr
 from engine.schema import Feature, Item
 
 GROUP = "text"
-VERSION = "1"
+VERSION = "3"
 NUM_PERM = 128
 SHINGLE = 3
 MAX_HTML_BYTES = 8_000_000
@@ -277,8 +279,18 @@ class TextDoc:
     links: list[str] = field(default_factory=list)
 
 
+def fold(text: str) -> str:
+    text = text.replace("ł", "l").replace("Ł", "L")
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+
+
+FOLDED_STOPWORDS = frozenset(fold(w) for w in STOPWORDS)
+
+
 def tokens(text: str) -> list[str]:
-    return [t for t in (w.lower() for w in WORD_RE.findall(text)) if t not in STOPWORDS]
+    return [
+        t for t in (fold(w.lower()) for w in WORD_RE.findall(text)) if t not in FOLDED_STOPWORDS
+    ]
 
 
 def _read_bytes(path: Path, limit: int = MAX_HTML_BYTES) -> bytes:
@@ -356,7 +368,53 @@ def _doc_from_meta(path: Path) -> TextDoc | None:
     )
 
 
-def load_docs(item: Item, raw_dir: Path) -> list[TextDoc]:
+def ocr_doc(item: Item, raw_dir: Path) -> TextDoc | None:
+    texts = ocr.item_texts(item, raw_dir)
+    if not texts:
+        return None
+    joined = " ".join(t.text for t in texts)
+    return TextDoc(
+        source="ocr: " + ", ".join(t.source[4:] for t in texts[:4]), narrative=joined, full=joined
+    )
+
+
+CHAR_SHINGLE = 5
+
+
+def char_signature(text: str) -> tuple[list[int], int]:
+    letters = re.sub(r"[^a-z]", "", fold(text.lower()))
+    shingles = {
+        letters[i : i + CHAR_SHINGLE] for i in range(max(0, len(letters) - CHAR_SHINGLE + 1))
+    }
+    mh = MinHash(num_perm=NUM_PERM)
+    for sh in shingles:
+        mh.update(sh.encode("ascii"))
+    return [int(v) for v in mh.hashvalues], len(letters)
+
+
+def ocr_feature(item: Item, raw_dir: Path) -> Feature:
+    if not (item.paths.get("screenshot") or item.paths.get("video") or item.paths.get("assets")):
+        return Feature.missing("text.ocr", GROUP, "brak obrazów i wideo do OCR")
+    if not ocr.available():
+        return Feature.missing(
+            "text.ocr",
+            GROUP,
+            "OCR wymaga opcjonalnej zależności rapidocr-onnxruntime (extra 'ocr')",
+        )
+    doc = ocr_doc(item, raw_dir)
+    signature, letters = char_signature(doc.full) if doc else ([], 0)
+    if letters < 40:
+        return Feature.missing("text.ocr", GROUP, "OCR nie znalazł czytelnego tekstu na obrazach")
+    return Feature(
+        "text.ocr",
+        GROUP,
+        {"minhash": signature, "tokens": letters, "preview": doc.full[:280]},
+        round(min(1.0, letters / 400) * 0.8, 3),
+        f"{doc.source} (5-gramy znaków bez spacji)",
+    )
+
+
+def load_docs(item: Item, raw_dir: Path, with_ocr: bool = True) -> list[TextDoc]:
     docs: list[TextDoc] = []
     for rel in item.paths.get("html", []):
         path = raw_dir / rel
@@ -369,10 +427,15 @@ def load_docs(item: Item, raw_dir: Path) -> list[TextDoc]:
             raw = _html_from_har(raw_dir / rel)
             if raw:
                 docs.append(parse_html(raw, f"{rel}:response.content(text/html)"))
+    has_page = bool(docs)
     for rel in item.paths.get("meta", []):
         doc = _doc_from_meta(raw_dir / rel)
         if doc:
             doc.source = f"{rel}:title/description"
+            docs.append(doc)
+    if with_ocr and not has_page:
+        doc = ocr_doc(item, raw_dir)
+        if doc:
             docs.append(doc)
     return docs
 
@@ -391,10 +454,10 @@ def minhash_signature(toks: list[str]) -> list[int]:
 def entities(text: str) -> list[str]:
     found: Counter[str] = Counter()
     for m in CAP_SEQ_RE.findall(text):
-        found[m.lower()] += 2
+        found[fold(m.lower())] += 2
     for m in CAP_WORD_RE.findall(text):
-        low = m.lower()
-        if low not in STOPWORDS:
+        low = fold(m.lower())
+        if low not in FOLDED_STOPWORDS:
             found[low] += 1
     return sorted(k for k, v in found.most_common(MAX_ENTITIES) if v >= 2)
 
@@ -432,7 +495,7 @@ def prices(text: str) -> list[str]:
 
 def topic(toks: list[str]) -> tuple[str | None, float]:
     scores = {
-        name: sum(1 for t in toks for stem in stems if t.startswith(stem))
+        name: sum(1 for t in toks for stem in stems if t.startswith(fold(stem)))
         for name, stems in TOPIC_LEXICON.items()
     }
     best = max(scores, key=scores.get)
@@ -464,7 +527,9 @@ def extract(item: Item, raw_dir: Path) -> dict[str, Feature]:
         "text.topic",
     ]
     if not docs:
-        return {n: Feature.missing(n, GROUP, "brak html/har/meta z tekstem") for n in names}
+        feats = {n: Feature.missing(n, GROUP, "brak html/har/meta/ocr z tekstem") for n in names}
+        feats["text.ocr"] = ocr_feature(item, Path(raw_dir))
+        return feats
     source = ", ".join(d.source for d in docs)
     title = " ".join(d.title for d in docs if d.title)
     narrative = " ".join(d.narrative for d in docs)
@@ -534,4 +599,5 @@ def extract(item: Item, raw_dir: Path) -> dict[str, Feature]:
         if tp
         else Feature.missing("text.topic", GROUP, f"{source} słownik tematów")
     )
+    feats["text.ocr"] = ocr_feature(item, Path(raw_dir))
     return feats

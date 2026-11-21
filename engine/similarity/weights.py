@@ -19,6 +19,7 @@ FEATURES: dict[str, Spec] = {
         0.9, cmp.shared_values, "ten sam kontakt (e-mail/telefon/komunikator/IBAN)"
     ),
     "text.narrative": Spec(0.8, cmp.minhash, "ta sama narracja"),
+    "text.ocr": Spec(0.6, cmp.minhash, "ten sam tekst na obrazach lub w wideo (OCR)"),
     "text.title": Spec(0.45, cmp.set_overlap, "podobny tytuł"),
     "text.entities": Spec(0.5, cmp.set_overlap, "te same nazwy własne/produkty"),
     "text.keywords": Spec(0.3, cmp.set_overlap, "te same słowa kluczowe"),

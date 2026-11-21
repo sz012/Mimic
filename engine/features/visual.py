@@ -9,13 +9,13 @@ from pathlib import Path
 import imagehash
 from PIL import Image, ImageStat
 
+from engine.features import media
 from engine.schema import Feature, Item
 
 GROUP = "visual"
-VERSION = "2"
+VERSION = "3"
 MIN_SIDE = 80
 MAX_ASSETS = 150
-VIDEO_STEP_SECONDS = 2
 MAX_HAR_BYTES = 120_000_000
 MAX_IMAGE_BYTES = 15_000_000
 ASSET_DIR_SUFFIX = "_files"
@@ -202,41 +202,20 @@ def _file_digests(item: Item, raw_dir: Path) -> list[str]:
 
 
 def _video_feature(item: Item, raw_dir: Path) -> Feature:
-    try:
-        import cv2
-    except ImportError:
+    if not media.opencv_available():
         return Feature.missing(
             "visual.video",
             GROUP,
             "klatki wideo wymagają opcjonalnej zależności opencv (extra 'video')",
         )
-    frames = []
-    for rel in item.paths.get("video", []):
-        cap = cv2.VideoCapture(str(raw_dir / rel))
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-        step = max(1, int(fps * VIDEO_STEP_SECONDS))
-        for idx in range(0, max(total, 1), step):
-            if len(frames) >= MAX_ASSETS:
-                break
-            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-            ok, frame = cap.read()
-            if not ok:
-                break
-            img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            if not _is_informative(img):
-                continue
-            frames.append(
-                {
-                    "src": f"{rel}@{idx / fps:.1f}s",
-                    "w": img.width,
-                    "h": img.height,
-                    "phash": str(imagehash.phash(img)),
-                }
-            )
-        cap.release()
+    frames = media.item_frames(item, raw_dir)
     if not frames:
         return Feature.missing("visual.video", GROUP, "nie udało się odczytać klatek wideo")
+    value = [{"src": f.src, "phash": f.phash} for f in frames]
     return Feature(
-        "visual.video", GROUP, frames, 0.7, f"klatki wideo co {VIDEO_STEP_SECONDS}s: pHash"
+        "visual.video",
+        GROUP,
+        value,
+        0.7,
+        f"klatki kluczowe wideo (co {media.STEP_SECONDS:g} s, zmiana sceny): pHash",
     )
