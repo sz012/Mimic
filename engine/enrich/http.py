@@ -10,10 +10,9 @@ USER_AGENT = "mimic-research"
 
 
 class HttpJson:
-    def get(self, url: str):
-        request = urllib.request.Request(
-            url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}
-        )
+    def get(self, url: str, headers: dict[str, str] | None = None):
+        merged = {"User-Agent": USER_AGENT, "Accept": "application/json", **(headers or {})}
+        request = urllib.request.Request(url, headers=merged)
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
             data = response.read(MAX_BYTES + 1)
         if len(data) > MAX_BYTES:
