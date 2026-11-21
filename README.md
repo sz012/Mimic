@@ -15,7 +15,7 @@ Docker:
 docker compose up --build
 ```
 
-Dane organizatora nie są w repo: zob. [data/README.md](data/README.md).
+Dane organizatora znajdują się poza repo.
 
 ## Struktura
 
