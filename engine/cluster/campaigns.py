@@ -56,7 +56,7 @@ def campaign_id(member_ids: Iterable[str]) -> str:
     return f"K-{ids[0]}" if len(ids) > 1 else f"N-{ids[0]}"
 
 
-def _case_pairs(items: list[Item]) -> list[tuple[str, str]]:
+def case_pairs(items: list[Item]) -> list[tuple[str, str]]:
     by_case: dict[str, list[str]] = {}
     for item in items:
         if item.case_id and item.case_id not in NON_CASE_IDS:
@@ -113,7 +113,7 @@ def cluster(
     ids = [i.id for i in items]
     by_id = {i.id: i for i in items}
     links = [e for e in edges if is_link(e, threshold, weights.kit_as_campaign)]
-    extra = _case_pairs(items) if case_links else []
+    extra = case_pairs(items) if case_links else []
     if method == "average":
         groups = _average_linkage(ids, links, extra, threshold)
     else:

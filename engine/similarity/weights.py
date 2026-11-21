@@ -31,7 +31,7 @@ FEATURES: dict[str, Spec] = {
     "person.names": Spec(0.45, cmp.set_overlap, "ta sama osoba publiczna"),
     "person.faces": Spec(0.6, cmp.generic, "ta sama twarz"),
     "infra.tracker_ids": Spec(0.95, cmp.shared_values, "ten sam identyfikator trackera/piksela"),
-    "infra.ad_account": Spec(0.9, cmp.shared_values, "to samo konto reklamowe"),
+    "infra.ad_account": Spec(0.85, cmp.shared_values, "to samo konto reklamowe"),
     "infra.url_params": Spec(0.8, cmp.shared_values, "te same identyfikatory kampanii w adresie"),
     "infra.domain": Spec(0.9, cmp.shared_values, "ta sama domena"),
     "infra.hosts": Spec(0.3, cmp.set_overlap, "wspólne hosty"),

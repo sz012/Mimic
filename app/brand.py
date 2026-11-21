@@ -33,6 +33,7 @@ class Brand:
     singleton_color: str = "#9e9e9e"
     weak_edge_color: str = "#cccccc"
     strong_edge_color: str = "#333333"
+    case_edge_color: str = "#7b61ff"
 
     def campaign_color(self, index: int) -> str:
         return self.campaign_palette[index % len(self.campaign_palette)]
@@ -52,7 +53,7 @@ def load_brand(path: Path = BRAND_FILE) -> Brand:
     groups = data.get("group_colors")
     if isinstance(groups, dict):
         brand.group_colors.update({k: v for k, v in groups.items() if isinstance(v, str)})
-    for key in ("singleton_color", "weak_edge_color", "strong_edge_color"):
+    for key in ("singleton_color", "weak_edge_color", "strong_edge_color", "case_edge_color"):
         if isinstance(data.get(key), str):
             setattr(brand, key, data[key])
     return brand

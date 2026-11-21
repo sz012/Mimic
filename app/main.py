@@ -324,7 +324,8 @@ def campaigns_tab(ws: Workspace, root: Path) -> None:
 def graph_tab(ws: Workspace) -> None:
     min_edge = st.slider("Pokaż krawędzie od", 0.1, 0.95, 0.3, 0.05)
     st.caption(
-        "Kolor węzła = kampania (szary: nowy wzorzec), grubość krawędzi = wynik, linia przerywana = poniżej progu."
+        "Kolor węzła = kampania (szary: nowy wzorzec), grubość krawędzi = wynik, linia przerywana = poniżej progu, "
+        "fioletowa kropkowana = ten sam przypadek (zgłoszenie)."
     )
     st.iframe(graph_html(ws.graph(min_edge), load_brand()), height=650)
 

@@ -11,6 +11,7 @@ from engine.cluster.campaigns import (
     Campaign,
     Method,
     assign_detail,
+    case_pairs,
     cluster,
 )
 from engine.cluster.pipeline import all_edges, extract_all, extract_features, has_features
@@ -23,6 +24,11 @@ from engine.sources.adlib import AdLibraryUnavailable, AdQuery, materialize, sea
 from engine.store import Store
 
 MIN_SIMILAR = 0.05
+CASE_CARD = {
+    "strength": "ten sam przypadek",
+    "summary": "połączone, bo: materiały z tego samego zgłoszenia (np. reklama i jej strona docelowa)",
+    "reasons": [],
+}
 
 
 @dataclass
@@ -245,6 +251,20 @@ class Workspace:
             if e.score >= min_edge
             for card in [edge_card(e, self.threshold, self.weights)]
         ]
+        if self.case_links:
+            drawn = {frozenset((link["a"], link["b"])) for link in links if link["linked"]}
+            for a, b in case_pairs(self.items):
+                if frozenset((a, b)) not in drawn:
+                    links.append(
+                        {
+                            "a": a,
+                            "b": b,
+                            "score": 1.0,
+                            "linked": True,
+                            "case": True,
+                            "card": CASE_CARD,
+                        }
+                    )
         return {"nodes": nodes, "links": links, "threshold": self.threshold}
 
     def stats(self) -> dict[str, int]:

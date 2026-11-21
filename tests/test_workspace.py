@@ -139,3 +139,20 @@ def test_search_ads_without_token(raw, tmp_path, monkeypatch):
     ws = Workspace.load(discover_items(raw), raw, tmp_path / "cache")
     results, error = ws.search_ads("x", ["PL"], tmp_path / "adlib")
     assert results == [] and "META_AD_LIBRARY_TOKEN" in error
+
+
+def test_graph_shows_case_links(raw, tmp_path):
+    from engine.schema import Feature, Item
+
+    ad = Item(
+        "200",
+        "200",
+        {"screenshot": ["200/ad.png"]},
+        {"text.topic": Feature("text.topic", "text", ["news"], 0.5, "t")},
+    )
+    ws = Workspace.load([*discover_items(raw), ad], raw, tmp_path / "cache")
+    case = [link for link in ws.graph(0.1)["links"] if link.get("case")]
+    assert {frozenset((link["a"], link["b"])) for link in case} == {
+        frozenset(("200", "200/strona_1"))
+    }
+    assert ws.label["200"] == ws.label["200/strona_1"]
