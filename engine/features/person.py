@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from pathlib import Path
@@ -8,46 +9,17 @@ from engine.features.text import load_docs
 from engine.schema import Feature, Item
 
 GROUP = "person"
-VERSION = "1"
+VERSION = "2"
 
-REFERENCE_PERSONS = [
-    "Rafał Brzoska",
-    "Monika Olejnik",
-    "Robert Lewandowski",
-    "Anna Lewandowska",
-    "Andrzej Duda",
-    "Donald Tusk",
-    "Mateusz Morawiecki",
-    "Rafał Trzaskowski",
-    "Szymon Hołownia",
-    "Karol Nawrocki",
-    "Sławomir Mentzen",
-    "Jerzy Owsiak",
-    "Kuba Wojewódzki",
-    "Magda Gessler",
-    "Marcin Prokop",
-    "Dorota Wellman",
-    "Krzysztof Stanowski",
-    "Ewa Chodakowska",
-    "Michał Sołowow",
-    "Dominika Kulczyk",
-    "Sebastian Kulczyk",
-    "Zygmunt Solorz",
-    "Leszek Czarnecki",
-    "Iga Świątek",
-    "Adam Małysz",
-    "Marcin Gortat",
-    "Tomasz Lis",
-    "Piotr Kraśko",
-    "Justyna Pochanke",
-    "Bogdan Rymanowski",
-    "Adam Glapiński",
-    "Elon Musk",
-    "Martyna Wojciechowska",
-    "Agnieszka Chylińska",
-    "Wojciech Cejrowski",
-    "Grzegorz Hajdarowicz",
-]
+REFS_FILE = Path(__file__).resolve().parents[2] / "data" / "refs" / "persons.json"
+
+
+def reference_persons(path: Path = REFS_FILE) -> list[dict]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return [p for p in data.get("persons", []) if isinstance(p, dict) and p.get("name")]
 
 
 def _fold(text: str) -> str:
@@ -62,15 +34,21 @@ def _stem(word: str) -> str:
     return word[:-2] if len(word) > 6 else word[:-1] if len(word) > 4 else word
 
 
+def _pattern(full: str) -> re.Pattern:
+    first, *rest = full.split()
+    last = rest[-1] if rest else first
+    if not rest:
+        return re.compile(rf"\b{re.escape(_stem(first))}\w{{0,4}}\b")
+    first_part = rf"{re.escape(_stem(first))}\w*?\s*"
+    optional = "" if len(last) <= 5 else "?"
+    return re.compile(rf"\b(?:{first_part}){optional}{re.escape(_stem(last))}\w{{0,4}}\b")
+
+
 def _patterns() -> list[tuple[str, re.Pattern]]:
     out = []
-    for name in REFERENCE_PERSONS:
-        first, *rest = name.split()
-        last = rest[-1]
-        first_part = rf"{re.escape(_stem(first))}\w*\s+"
-        optional = "" if len(last) <= 5 else "?"
-        pat = re.compile(rf"\b(?:{first_part}){optional}{re.escape(_stem(last))}\w{{0,4}}\b")
-        out.append((name, pat))
+    for person in reference_persons():
+        for variant in [person["name"], *person.get("aliases", [])]:
+            out.append((person["name"], _pattern(variant)))
     return out
 
 
@@ -83,7 +61,7 @@ def known_persons(text: str) -> dict[str, int]:
     for name, pat in PATTERNS:
         n = len(pat.findall(folded))
         if n:
-            hits[name] = n
+            hits[name] = hits.get(name, 0) + n
     return hits
 
 

@@ -1,0 +1,186 @@
+{
+  "source": "lista nazwisk osób publicznych często wykorzystywanych w oszukańczych reklamach w Polsce, przygotowana ręcznie na podstawie publicznych ostrzeżeń (CERT Polska, media); bez obrazów",
+  "license": "nazwiska osób publicznych, bez danych biometrycznych",
+  "persons": [
+    {
+      "name": "Rafał Brzoska",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Monika Olejnik",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Robert Lewandowski",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Anna Lewandowska",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Andrzej Duda",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Donald Tusk",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Mateusz Morawiecki",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Rafał Trzaskowski",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Szymon Hołownia",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Karol Nawrocki",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Sławomir Mentzen",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Jerzy Owsiak",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Kuba Wojewódzki",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Magda Gessler",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Marcin Prokop",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Dorota Wellman",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Krzysztof Stanowski",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Ewa Chodakowska",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Michał Sołowow",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Dominika Kulczyk",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Sebastian Kulczyk",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Zygmunt Solorz",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Leszek Czarnecki",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Iga Świątek",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Adam Małysz",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Marcin Gortat",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Tomasz Lis",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Piotr Kraśko",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Justyna Pochanke",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Bogdan Rymanowski",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Adam Glapiński",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Elon Musk",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Martyna Wojciechowska",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Agnieszka Chylińska",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Wojciech Cejrowski",
+      "aliases": [],
+      "images": []
+    },
+    {
+      "name": "Grzegorz Hajdarowicz",
+      "aliases": [],
+      "images": []
+    }
+  ]
+}

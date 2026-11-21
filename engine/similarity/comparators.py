@@ -77,7 +77,8 @@ def minhash(name: str, a: dict, b: dict, ctx: Context | None) -> Result:
         return Result(0.0, "niezgodne sygnatury", None, None)
     jac = sum(1 for x, y in zip(ha, hb) if x == y) / len(ha)
     score = _clamp((jac - 0.1) / 0.5)
-    note = f"podobieństwo narracji (MinHash Jaccard {jac:.2f} na 3-gramach słów)"
+    unit = "5-gramach znaków" if name == "text.ocr" else "3-gramach słów"
+    note = f"podobieństwo tekstu (MinHash Jaccard {jac:.2f} na {unit})"
     return Result(score, note, a.get("preview", ""), b.get("preview", ""))
 
 

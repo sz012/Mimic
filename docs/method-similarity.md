@@ -54,8 +54,8 @@ Wagi startowe z katalogu cech (sekcja 4.3 briefu), z trzema zmianami wynikający
 
 | Zmiana | Powód (dane organizatora, etykiety tymczasowe) |
 |---|---|
-| `infra.favicon` i `infra.endpoints` jako „zestaw narzędzi”, nie twarda przesłanka | ta sama favicona i te same ścieżki `/api/v1/agent/…` serwowane z domen kampanii A i B; skleiły dwie kampanie o różnej narracji (precyzja par 0.45) |
-| `template.html_comments`: `set_overlap` zamiast `shared_values` | jeden wspólny znacznik sekcji typu `===== FOOTER =====` dawał „bardzo silną przesłankę” i dołączał przypadek 36 do kampanii A (precyzja par 0.77) |
+| `infra.favicon` i `infra.endpoints` jako „zestaw narzędzi”, nie twarda przesłanka | ta sama favicona i te same ścieżki backendu serwowane z domen kampanii A i B; skleiły dwie kampanie o różnej narracji (precyzja par 0.45) |
+| `template.html_comments`: `set_overlap` zamiast `shared_values` | jeden wspólny, generyczny znacznik sekcji w komentarzu HTML dawał „bardzo silną przesłankę” i dołączał przypadek 36 do kampanii A (precyzja par 0.77) |
 | `infra.ad_account` (spoza katalogu) jako twarda przesłanka, waga 0.9 | identyfikator konta reklamowego wskazuje operatora |
 
 Komparator `date_proximity` dla `infra.created`: zgodność 1 przy różnicy ≤ 3 dni, liniowo do 0 przy 30 dniach.
