@@ -1101,6 +1101,7 @@ dependencies = [
 faces = [
     { name = "insightface" },
     { name = "onnxruntime" },
+    { name = "opencv-python-headless" },
 ]
 ml = [
     { name = "open-clip-torch" },
@@ -1133,6 +1134,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "onnxruntime", marker = "extra == 'faces'", specifier = ">=1.18" },
     { name = "open-clip-torch", marker = "extra == 'ml'", specifier = ">=2.26" },
+    { name = "opencv-python-headless", marker = "extra == 'faces'", specifier = ">=4.10" },
     { name = "opencv-python-headless", marker = "extra == 'video'", specifier = ">=4.10" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pillow", specifier = ">=10.4" },

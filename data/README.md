@@ -6,6 +6,8 @@ Dane organizatora są objęte zasadą: tylko na potrzeby zadania, nie publikowa�
 |---|---|---|
 | `data/raw/<id>/` | nie | przypadki organizatora (1, 2, 3, 5, 10, 14, 36, 47, 48, 61), jeden folder na przypadek, oryginalne nazwy i zawartość, tylko do odczytu |
 | `data/cache/` | nie | cechy, baza SQLite, wyniki wzbogacenia; do odtworzenia z `data/raw/` |
+| `data/refs/persons.json` | tak | nazwiska osób publicznych do wyszukiwania w tekście (bez obrazów) |
+| `data/refs/images/<imię nazwisko>/` | nie | zdjęcia referencyjne do dopasowania twarzy, tylko lokalnie, na potrzeby demo; zalecany plik `ZRODLA.txt` ze źródłem i licencją zdjęć |
 | `data/labels/labels.json` | tak | przypisanie przypadków do kampanii: tylko identyfikatory i etykiety |
 
 ## Pierwsze uruchomienie po `git clone`

@@ -27,6 +27,7 @@ Zapytania sieciowe dotyczą wyłącznie nazw domen z danych (oraz metadanych rek
 | `opencv-python-headless` (dodatek `video`) | klatki kluczowe wideo | Apache-2.0 | kodeki zależne od kompilacji OpenCV |
 | `rapidocr-onnxruntime` (dodatek `ocr`) i modele PP-OCR (PaddleOCR) w ONNX dołączone do pakietu | OCR zrzutów, klatek i obrazów | Apache-2.0 | model rozpoznawania chińsko-angielski: polskie znaki diakrytyczne bywają gubione, więc tekst porównywany jest bez diakrytyków |
 | `onnxruntime` | środowisko modeli ONNX | MIT | CPU, ok. 0,5–2 s na obraz, wyniki w pamięci podręcznej |
-| Rozpoznawanie twarzy | nie używane (InsightFace wymaga modelu ok. 300 MB i obrazów referencyjnych z jasną licencją) | — | `person.faces` jest jawnym brakiem |
+| `insightface` (dodatek `faces`) i model `buffalo_l` | wykrywanie i rozpoznawanie twarzy osób publicznych z lokalnej bazy referencyjnej | kod: MIT; modele: tylko do niekomercyjnych badań (zgodnie z informacją projektu InsightFace) | model ok. 300 MB pobierany przy pierwszym użyciu (`scripts/fetch_models.py`), CPU. Przed użyciem komercyjnym wymagana zmiana modelu |
+| Obrazy referencyjne osób publicznych | baza do dopasowania twarzy w demo | zależna od zdjęcia, źródło i licencja zapisywane lokalnie obok zdjęć | tylko lokalnie w `data/refs/images/`, poza repozytorium, bez publikowania; to dane biometryczne osób publicznych używane wyłącznie w demo |
 
 Opcjonalne grupy zależności (`video`, `ocr`, `faces`, `ml`) są instalowane osobno. Przed włączeniem kolejnego modelu trzeba zapisać tu jego licencję i ograniczenia użycia.

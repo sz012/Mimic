@@ -32,6 +32,7 @@ services:
         required: false
     volumes:
       - ./data/raw:/srv/mimic/data/raw:ro
+      - ./data/refs/images:/srv/mimic/data/refs/images:ro
       - ./data/cache:/srv/mimic/data/cache
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]

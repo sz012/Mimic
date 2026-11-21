@@ -5,13 +5,20 @@ import re
 import unicodedata
 from pathlib import Path
 
+from engine.features import faces
 from engine.features.text import load_docs
 from engine.schema import Feature, Item
 
 GROUP = "person"
-VERSION = "2"
+BASE_VERSION = "3"
 
 REFS_FILE = Path(__file__).resolve().parents[2] / "data" / "refs" / "persons.json"
+
+
+def __getattr__(name: str) -> str:
+    if name == "VERSION":
+        return f"{BASE_VERSION}.{faces.state()}"
+    raise AttributeError(name)
 
 
 def reference_persons(path: Path = REFS_FILE) -> list[dict]:
@@ -88,9 +95,5 @@ def extract(item: Item, raw_dir: Path) -> dict[str, Feature]:
             if names
             else Feature.missing("person.names", GROUP, source)
         )
-    feats["person.faces"] = Feature.missing(
-        "person.faces",
-        GROUP,
-        "dopasowanie twarzy wymaga opcjonalnej zależności insightface (extra 'faces')",
-    )
+    feats.update(faces.extract(item, Path(raw_dir)))
     return feats

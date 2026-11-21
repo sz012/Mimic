@@ -16,6 +16,7 @@ from app.demo_items import demo_items
 from app.graph import graph_html
 from app.sources import ingest_upload, load_items, open_store, raw_dir
 from engine.cluster import LINK_THRESHOLD, Analysis, Workspace
+from engine.cluster.perspectives import features_used, membership_table, run_all
 from engine.explain.report import to_csv, to_html, to_json
 from engine.schema import Evidence, Item
 
@@ -323,6 +324,75 @@ def campaigns_tab(ws: Workspace, root: Path) -> None:
     c3.download_button("Raport HTML do wydruku", to_html(cards, meta), "kampanie.html", "text/html")
 
 
+@st.cache_data(show_spinner="Liczę grupowanie według kryteriów…")
+def perspective_runs(_ws: Workspace, n_items: int, threshold: float, case_links: bool):
+    return run_all(_ws.items, threshold, case_links, _ws.weights)
+
+
+def perspectives_tab(ws: Workspace) -> None:
+    st.markdown(
+        "Kampanię można wyznaczać na kilka sposobów. Ten sam zbiór materiałów jest tu grupowany "
+        "osobno według każdego kryterium: operatora, szablonu, narracji, wizerunku i zestawu "
+        "narzędzi. Widać, co każde kryterium widzi samo, a czego dopiero razem z innymi."
+    )
+    with_case = st.checkbox(
+        "Łącz materiały z tego samego przypadku",
+        value=False,
+        key="persp_case",
+        help="Domyślnie wyłączone, żeby pokazać czyste kryteria.",
+    )
+    results = perspective_runs(ws, len(ws.items), ws.threshold, with_case)
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "kryterium": r.perspective.label,
+                    "kampanie": len(r.real),
+                    "materiały w kampaniach": sum(len(c.items) for c in r.real),
+                    "pojedyncze": len(r.singletons),
+                    "pytanie": r.perspective.question,
+                }
+                for r in results.values()
+            ]
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+    st.subheader("Przypisanie materiałów według kryterium")
+    st.dataframe(
+        pd.DataFrame(membership_table(results, ws.items)), width="stretch", hide_index=True
+    )
+    st.caption(
+        "Ta sama etykieta w wierszu oznacza tę samą kampanię w danym kryterium, myślnik: "
+        "materiał nie połączył się z niczym."
+    )
+    st.subheader("Jak liczy każde kryterium")
+    for key, res in results.items():
+        with st.expander(res.perspective.label):
+            st.write(res.perspective.question)
+            if res.perspective.kit_as_campaign:
+                st.caption(
+                    "Uwaga: wspólna favicona i ścieżki formularzy łączą też materiały różnych "
+                    "oszustów, którzy używają tej samej platformy. W widoku łączonym "
+                    "nie są wystarczającą przesłanką."
+                )
+            st.markdown("**Cechy brane pod uwagę (waga):**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {"cecha": n, "waga": round(w, 2), "znaczenie": lab}
+                        for n, w, lab in features_used(key, ws.weights)
+                    ]
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            for c in res.real:
+                st.markdown(f"- **{c.id}**: " + ", ".join(i.id for i in c.items))
+            if res.singletons:
+                st.caption("Bez kampanii: " + ", ".join(c.item_ids[0] for c in res.singletons))
+
+
 def graph_tab(ws: Workspace) -> None:
     min_edge = st.slider("Pokaż krawędzie od", 0.1, 0.95, 0.3, 0.05)
     st.caption(
@@ -392,13 +462,15 @@ def main() -> None:
     st.sidebar.metric("Nowe wzorce", stats["singletons"])
     if stats["insufficient"]:
         st.sidebar.metric("Za mało danych", stats["insufficient"])
-    tab_an, tab_camp, tab_graph, tab_feat = st.tabs(
-        ["Analiza materiału", "Kampanie", "Graf", "Cechy"]
+    tab_an, tab_camp, tab_persp, tab_graph, tab_feat = st.tabs(
+        ["Analiza materiału", "Kampanie", "Kryteria grupowania", "Graf", "Cechy"]
     )
     with tab_an:
         analysis_tab(ws, root)
     with tab_camp:
         campaigns_tab(ws, root)
+    with tab_persp:
+        perspectives_tab(ws)
     with tab_graph:
         graph_tab(ws)
     with tab_feat:

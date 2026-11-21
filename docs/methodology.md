@@ -45,7 +45,8 @@ RapidOCR (modele PP-OCR w ONNX, bez binarek systemowych) czyta zrzuty, klatki kl
 
 ### 3.4 Osoby
 - `person.names`: osoby publiczne z małej bazy `data/refs/persons.json` (nazwa, aliasy) wykryte w tekście lub OCR, z obsługą odmiany nazwisk i wymogiem imienia przy krótkich nazwiskach.
-- `person.faces`: jawny brak. Dopasowanie twarzy wymaga modelu i obrazów referencyjnych z jasną licencją i nie weszło do tej wersji.
+- `person.face_vectors`: wektory (512 liczb) różnych twarzy wykrytych w obrazach materiału, do 12 na materiał. Porównanie dwóch materiałów bierze największe podobieństwo cosinusowe między ich twarzami; od progu `MIMIC_FACE_THRESHOLD` (domyślnie 0,5) twarz jest uznana za tę samą, a wynik rośnie do 1,0 przy podobieństwie 0,7. Ta cecha nie wymaga żadnej bazy referencyjnej, więc działa na dowolnych osobach, także w nieznanym zbiorze, a wektory zostają w lokalnym cache poza repozytorium. Pewność 0,8.
+- `person.faces`: osoby z bazy referencyjnej rozpoznane po twarzy na zrzutach, w zasobach strony i w obrazach z HAR. Detektor i model rozpoznawania (InsightFace `buffalo_l`, wektory 512 wymiarów) liczą dla każdej twarzy wektor, a dopasowanie to największe podobieństwo cosinusowe do wektorów referencyjnych osoby, przy progu `MIMIC_FACE_THRESHOLD` (domyślnie 0,5). Wartością cechy jest lista dopasowanych osób, a pewnością największe podobieństwo. Obrazy referencyjne leżą lokalnie w `data/refs/images/<imię nazwisko>/` i nie trafiają do repozytorium. Próg 0,5 wybrano na lokalnych materiałach: prawdziwe dopasowania miały podobieństwo 0,69–0,83, a największe fałszywe 0,44. Bez zależności `faces`, bez obrazów referencyjnych albo bez dopasowania cecha jest jawnym brakiem z powodem. Grupa `person` nie jest niezależnym dowodem: ta sama osoba w dwóch materiałach nie łączy ich bez innych śladów, bo osoby publiczne występują w wielu niepowiązanych oszustwach.
 
 ### 3.5 Infrastruktura
 - `domain`, `hosts`, `third_party_hosts`: domena rejestrowalna strony (lista sufiksów wbudowana, bez sieci) i hosty z HAR i HTML, bez powszechnej infrastruktury publicznej.
@@ -105,6 +106,21 @@ Wspólny zestaw narzędzi (`infra.favicon`, `infra.endpoints`: ta sama ikona i t
 Kampanie to składowe grafu połączeń (`components`) lub wynik średniego wiązania (`average`). Opcja `case_links` (domyślnie włączona) dokłada połączenia między materiałami z tego samego zgłoszenia (`case_id`, np. reklama i strony docelowe). Identyfikator kampanii jest stały: `K-<najmniejszy id członka>`, a pojedynczy materiał to `N-<id>`.
 
 Przy więcej niż 40 materiałach porównywane są tylko pary kandydatów z indeksu odwrotnego: wspólne wartości cech o wadze ≥ 0,4, pasma MinHash LSH i segmenty pHash. Na mniejszych zbiorach porównywane są wszystkie pary. Test sprawdza, że na zbiorze 56 materiałów oba sposoby dają identyczne kampanie.
+
+## 6a. Kryteria grupowania
+
+Kampanię można wyznaczać na kilka sposobów. Zakładka "Kryteria grupowania" w aplikacji i sekcja `perspectives` w `make eval` grupują ten sam zbiór osobno według każdego kryterium. Kryterium to zbiór grup cech, które mogą wnosić dowody. Pozostałe grupy dostają wagę 0, a cała reszta (wzór podobieństwa, reguła połączenia, próg) zostaje taka sama.
+
+| Kryterium | Grupy cech | Pytanie |
+|---|---|---|
+| Łączona (domyślna) | wszystkie | dowody z co najmniej dwóch niezależnych źródeł albo jeden twardy ślad |
+| Operator | infra | te same identyfikatory trackerów, konta reklamowe, domeny, certyfikaty, parametry kampanii |
+| Szablon | template | ta sama struktura DOM, klasy CSS, skrypty, pola formularzy |
+| Narracja | text | podobny tekst, kontakty, nazwy własne, kwoty |
+| Wizerunek | visual, person | te same obrazy, wygląd strony, osoby publiczne |
+| Platforma | infra, template, ślady zestawu narzędzi liczone jako dowód | ta sama favicona i ścieżki formularzy |
+
+Wyniki na etykietach roboczych (14 materiałów, 3 kampanie, bez łączenia po przypadku): każde pojedyncze kryterium ma precyzję 1,00, ale niski recall (operator 0,50, szablon i wizerunek 0,14, narracja 0,07), a łączone ma precyzję 1,00 i recall 0,71. Kryterium platformy ma recall 0,71, ale precyzję tylko 0,45, bo łączy różnych oszustów korzystających z tych samych narzędzi. Dlatego w widoku łączonym ślady platformy nie wystarczają do połączenia (sekcja 3.7). Liczby pochodzą z małego, roboczego zbioru i służą do pokazania mechanizmu, nie jako wynik końcowy.
 
 ## 7. Przypisanie nowego materiału
 

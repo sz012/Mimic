@@ -108,7 +108,8 @@ def edge_card(
     strong = [e for e in edge.evidence if contribution(e) >= STRONG]
     support = [e for e in edge.evidence if SUPPORTING <= contribution(e) < STRONG]
     if strong:
-        summary = "połączone, bo: " + "; ".join(label(e) for e in strong)
+        prefix = "połączone, bo: " if linked else "mocne przesłanki, ale bez połączenia: "
+        summary = prefix + "; ".join(label(e) for e in strong)
     elif support:
         summary = "tylko suma słabszych przesłanek: " + "; ".join(label(e) for e in support[:4])
     else:
