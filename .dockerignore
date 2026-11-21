@@ -7,3 +7,5 @@ data/cache
 .idea
 models
 brand
+web/node_modules
+web/dist

@@ -16,6 +16,12 @@ make run
 
 Aplikacja działa pod adresem http://localhost:8501.
 
+Interfejs React działa osobno z API. Uruchom serwer przez `make api` (port 8000), a w drugim terminalu `cd web && npm ci && npm run dev` (port 5173). W produkcji FastAPI podaje też zbudowaną aplikację pod portem 8000.
+
+```bash
+docker compose up --build web
+```
+
 Docker (bez instalowania Pythona):
 
 ```bash
