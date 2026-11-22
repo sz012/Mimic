@@ -6,29 +6,25 @@ export const demoSamples = {
 }
 
 const demoScenario: DemoStep[] = [
-  { view: '/', title: 'Efekt końcowy', description: 'Mapa kampanii: ramki to kampanie, linie to powiązania z uzasadnieniem. Zaraz rozłożymy to na czynniki pierwsze.' },
-  { view: '/collection', title: 'Zbiór', description: 'Zaczynamy od pojedynczych materiałów. Na tym etapie nie zakładamy, które należą do tej samej kampanii.' },
-  { view: '/items', title: 'Ślady materiału', description: 'Z materiału wyciągamy tekst, obraz, infrastrukturę, szablon i osoby, także po twarzy. Brak danych pozostaje widoczny.', item: 'demo/A1' },
-  { view: '/compare', title: 'Dwa materiały jednej kampanii', description: 'Wynik składa się z przesłanek o znanych wagach: ten sam tracker, ten sam tekst, ta sama twarz.', item: 'demo/A1', other: 'demo/A2' },
-  { view: '/criteria', title: 'Po czym dzielić na kampanie', description: 'Te same materiały tworzą różne grupy zależnie od kryterium. Żadne samo nie wystarcza, dopiero razem.' },
-  { view: '/', hash: 'mapa', title: 'Mapa kampanii', description: 'Próg decyduje, które powiązania wystarczą do wspólnej kampanii. Kliknij linię, żeby zobaczyć uzasadnienie.' },
-  { view: '/new', title: 'Nowy materiał trafia do kampanii', description: 'Nowy materiał jest porównywany z całym zbiorem i przypisany tam, gdzie ma dowody.', sample: 'known' },
-  { view: '/new', title: 'Nowy wzorzec', description: 'Gdy dowodów jest za mało, system nie przypisuje materiału na siłę.', sample: 'unknown' },
+  { view: '/', title: 'Wstęp', description: 'Mimic z pojedynczych podejrzanych materiałów odtwarza kampanie oszustw i uzasadnia każde połączenie.' },
+  { view: '/collection', title: 'Zbiór', description: 'Zaczynamy od pojedynczych materiałów. Przy każdym widać, ile cech udało się wyciągnąć i ile brakuje.' },
+  { view: '/items', title: 'Ślady materiału', description: 'Z materiału wyciągamy tekst, obraz, infrastrukturę, szablon i osoby. Brak danych pozostaje widoczny.', item: 'demo/A1' },
+  { view: '/compare', title: 'Dwa materiały jednej kampanii', description: 'Wynik składa się z przesłanek o znanych wagach: tekst, obrazy, osoba.', item: 'demo/A1', other: 'demo/A2' },
+  { view: '/', hash: 'mapa', title: 'Mapa kampanii', description: 'Kampanie można definiować na różne sposoby. Przełączaj kryteria i klikaj linie, żeby zobaczyć uzasadnienie.' },
+  { view: '/new', title: 'Nowy materiał', description: 'Tu można przeanalizować własny materiał: plik, ZIP lub adres URL, albo wyszukać reklamy w bibliotece reklam.' },
 ]
 
 const realScenario: DemoStep[] = [
-  { view: '/', title: 'Efekt końcowy', description: 'Mapa kampanii: ramki to kampanie, linie to powiązania z uzasadnieniem. Zaraz rozłożymy to na czynniki pierwsze.' },
-  { view: '/collection', title: 'Zbiór', description: 'Zaczynamy od pojedynczych materiałów. Na tym etapie nie zakładamy, które należą do tej samej kampanii.' },
+  { view: '/', title: 'Wstęp', description: 'Mimic z pojedynczych podejrzanych materiałów odtwarza kampanie oszustw i uzasadnia każde połączenie.' },
+  { view: '/collection', title: 'Zbiór', description: 'Zaczynamy od czternastu pojedynczych materiałów. Przy każdym widać, ile cech udało się wyciągnąć i ile brakuje.' },
   { view: '/items', title: 'Ślady materiału', description: 'Z materiału wyciągamy tekst, obraz, infrastrukturę, szablon i osoby, także po twarzy. Brak danych pozostaje widoczny.', item: '1' },
-  { view: '/compare', title: 'Dwa materiały jednej kampanii', description: 'Wynik składa się z przesłanek o znanych wagach: ten sam tracker, ten sam tekst, ta sama twarz.', item: '1', other: '2' },
-  { view: '/compare', title: 'Te same twarze, a jednak osobne kampanie', description: 'Te same osoby i podobne narzędzia nie wystarczą. Bez dowodu na wspólnego operatora system nie łączy, bo ważna jest precyzja.', item: '1', other: '48' },
-  { view: '/criteria', title: 'Po czym dzielić na kampanie', description: 'Te same materiały tworzą różne grupy zależnie od kryterium. Żadne samo nie wystarcza, dopiero razem.' },
-  { view: '/', hash: 'mapa', title: 'Mapa kampanii', description: 'Próg decyduje, które powiązania wystarczą do wspólnej kampanii. Kliknij linię, żeby zobaczyć uzasadnienie.' },
-  { view: '/new', title: 'Nowy materiał trafia do kampanii', description: 'Materiał jest porównywany z resztą zbioru i przypisany tam, gdzie ma dowody. Pokazujemy to na materiale, którego system nie zna.', analyze: '3' },
-  { view: '/new', title: 'Nowy wzorzec', description: 'Gdy dowodów jest za mało, system nie przypisuje materiału na siłę.', analyze: '47' },
+  { view: '/compare', title: 'Dwa materiały jednej kampanii', description: 'Wynik składa się z przesłanek o znanych wagach: ten sam tracker, identyczny tekst, ta sama twarz.', item: '1', other: '2' },
+  { view: '/compare', title: 'Wysoki wynik, a jednak bez połączenia', description: 'Wspólna platforma i te same osoby publiczne nie wystarczą. Bez dowodu na wspólnego operatora system nie łączy.', item: '1', other: '48' },
+  { view: '/', hash: 'mapa', title: 'Mapa kampanii', description: 'Kampanie można definiować na różne sposoby. Przełączaj kryteria i klikaj linie, żeby zobaczyć uzasadnienie.' },
+  { view: '/new', title: 'Nowy materiał', description: 'Tu można przeanalizować własny materiał: plik, ZIP lub adres URL, albo wyszukać reklamy w bibliotece reklam.' },
 ]
 
 export function demoStepsFor(ids: string[]): DemoStep[] {
   const known = new Set(ids)
-  return ['1', '2', '3', '47', '48'].every(id => known.has(id)) ? realScenario : demoScenario
+  return ['1', '2', '48'].every(id => known.has(id)) ? realScenario : demoScenario
 }

@@ -3,7 +3,7 @@
 Format: decyzja, powód. Data wszystkich wpisów: 2026-11-21, o ile nie zapisano inaczej.
 
 - **Python 3.12, uv, `uv.lock`.** Powtarzalne środowisko lokalnie i w Dockerze.
-- **SQLite, graf w pamięci (NetworkX po stronie silnika, Cytoscape.js w interfejsie).** Najmniej infrastruktury przy pełnym przepływie od początku do końca. Neo4j odłożone.
+- **SQLite, graf w pamięci (NetworkX po stronie silnika, D3 w interfejsie).** Najmniej infrastruktury przy pełnym przepływie od początku do końca. Neo4j odłożone.
 - **Materiał to jedna strona, nie cały folder.** Przypadek bywa kilkoma stronami (reklama i strony docelowe). Identyfikator to ścieżka katalogu i jest niezmienny, bo etykiety się do niego odwołują.
 - **Parsowanie wyłącznie statyczne.** Nigdy nie wykonujemy skryptów stron oszustów i domyślnie ich nie pobieramy. Adres URL wpisany w interfejsie daje tylko analizę domeny, chyba że ustawiono `MIMIC_ALLOW_FETCH=1`.
 - **Wzbogacenie metadanymi domen jest opcjonalne** (`MIMIC_ENRICH=1`). Demo ma działać bez sieci, a błąd sieci daje jawny brak cechy z powodem.

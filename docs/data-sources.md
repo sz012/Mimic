@@ -20,7 +20,7 @@ Zapytania sieciowe dotyczą wyłącznie nazw domen z danych (oraz metadanych rek
 | streamlit, pyvis | zapasowy interfejs i jego graf | Apache-2.0, BSD-3-Clause | zastąpiony głównym interfejsem React |
 | networkx | składowe grafu i grupowanie | BSD-3-Clause | |
 | React, React DOM, React Router, TanStack Query, Zustand | główny interfejs webowy | MIT | budowany w obrazie Docker (Node 22) |
-| Cytoscape.js | graf kampanii | MIT | |
+| D3 (d3-force, d3-selection, d3-zoom i pozostałe moduły) | graf kampanii | ISC | |
 | Vite, TypeScript | budowa interfejsu | MIT, Apache-2.0 | |
 | Geist (`@fontsource/geist`) | krój pisma interfejsu | SIL Open Font License 1.1 | czcionka dołączona do aplikacji, bez ładowania z sieci |
 | beautifulsoup4, lxml | parsowanie HTML | MIT, BSD-3-Clause | |
