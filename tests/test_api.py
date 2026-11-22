@@ -36,7 +36,18 @@ def test_campaigns_graph_compare_and_criteria(tmp_path):
     api = client(tmp_path)
     campaigns = api.get("/api/campaigns").json()
     assert campaigns and api.get(f"/api/campaigns/{campaigns[0]['id']}").json()["formula"]
-    assert len(api.get("/api/graph").json()["nodes"]) == 5
+    graph = api.get("/api/graph").json()
+    assert len(graph["nodes"]) == 5
+    groups = {link["group"] for link in graph["links"] if link["linked"]}
+    assert groups and groups <= {"text", "visual", "infra", "template", "person", "case"}
+    state = api.get("/api/state").json()
+    assert len(state["perspectives"]) == 6 and state["default_perspective"] == "combined"
+    for perspective in state["perspectives"]:
+        view = api.get(f"/api/graph?perspective={perspective['key']}").json()
+        assert view["perspective"] == perspective["key"] and len(view["nodes"]) == 5
+    narrative = api.get("/api/graph?perspective=narrative").json()
+    assert all(link["group"] in {"text", "case", None} for link in narrative["links"])
+    assert api.get("/api/graph?perspective=unknown").status_code == 422
     comparison = api.post("/api/compare", json={"a": "demo/A1", "b": "demo/A2"}).json()
     assert comparison["score"] > 0 and comparison["card"]["counterfactual"]
     criteria = api.get("/api/criteria").json()

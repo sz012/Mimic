@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import anatomyStyles from './Anatomy.module.css'
 import { demoSamples } from './demo/script'
 import { faceMatches, featureLabel, post, request, short, groups, groupNames } from './api'
-import { CampaignGraph, edgeKey, shortId } from './Graph'
+import { CampaignGraph, GROUP_COLORS, GROUP_LABELS, edgeKey, shortId } from './Graph'
 import type { Selection } from './Graph'
 import type { Analysis, AppState, Campaign, Comparison, Criteria, EdgeCard, Feature, Graph, Group, ItemDetail, ItemRow } from './api'
 import { CampaignChip, Card, Confidence, EdgeDetails, Empty, GroupChip, ItemLink, Score, Section } from './ui'
@@ -159,7 +159,9 @@ function SelectionDetails({ graph, selection }: { graph: Graph; selection: Selec
 export function MapView({ theme, heading = true }: { theme: string; heading?: boolean }) {
   const query = useQueryClient()
   const { data: state } = useStateData()
-  const { data: graph } = useQuery({ queryKey: ['graph', state?.threshold, state?.method, state?.case_links], queryFn: () => request<Graph>('/graph?min_edge=0.1'), enabled: !!state })
+  const [perspective, setPerspective] = useState('combined')
+  const { data: graph } = useQuery({ queryKey: ['graph', perspective, state?.threshold, state?.method, state?.case_links], queryFn: () => request<Graph>(`/graph?min_edge=0.1&perspective=${perspective}`), enabled: !!state, placeholderData: previous => previous })
+  const chosen = state?.perspectives.find(option => option.key === perspective)
   const [threshold, setThreshold] = useState(state?.threshold ?? 0.5)
   const [selection, setSelection] = useState<Selection>(null)
   const [showWeak, setShowWeak] = useState(false)
@@ -167,7 +169,8 @@ export function MapView({ theme, heading = true }: { theme: string; heading?: bo
   useEffect(() => { if (state) setThreshold(state.threshold) }, [state?.threshold])
   const body = <>
     <div className="mapControls card"><label>Próg połączenia <strong>{threshold.toFixed(2)}</strong><input type="range" min="0.2" max="0.95" step="0.01" value={threshold} onChange={event => setThreshold(Number(event.target.value))} onPointerUp={() => mutation.mutate({ threshold })} onKeyUp={() => mutation.mutate({ threshold })} /></label><label>Metoda<select value={state?.method || 'components'} onChange={event => mutation.mutate({ method: event.target.value })}><option value="components">Składowe grafu</option><option value="average">Średnie wiązanie</option></select></label><label className="switchLabel"><input type="checkbox" checked={state?.case_links || false} onChange={event => mutation.mutate({ case_links: event.target.checked })} /> Łącz po przypadku</label><label className="switchLabel"><input type="checkbox" checked={showWeak} onChange={event => setShowWeak(event.target.checked)} /> Pokaż słabsze powiązania</label></div>
-    <div className="mapLayout"><div className="card graphCard">{graph ? <CampaignGraph graph={graph} showWeak={showWeak} selection={selection} onSelect={setSelection} theme={theme} /> : <div className="graphCanvas graphLoading">Ładowanie mapy…</div>}<div className="graphLegend"><span><i className="swatch" /> ramka = kampania</span><span><i className="swatch grey" /> pojedynczy wzorzec</span><span><i className="solidLine" /> połączone, grubość = wynik</span><span><i className="dottedLine" /> ten sam przypadek</span><span><i className="dashedLine" /> słabsze, poniżej progu</span></div></div>
+    {state && <div className="perspectiveBar"><div className="perspectiveSwitch" role="radiogroup" aria-label="Względem czego grupujemy kampanie">{state.perspectives.map(option => <button key={option.key} role="radio" aria-checked={option.key === perspective} className={option.key === perspective ? 'on' : ''} onClick={() => { setPerspective(option.key); setSelection(null) }}>{option.label.replace(/\s*\(.*\)$/, '')}</button>)}</div>{chosen && <p className="perspectiveQuestion">{chosen.question}</p>}</div>}
+    <div className="mapLayout"><div className="card graphCard">{graph ? <CampaignGraph graph={graph} showWeak={showWeak} selection={selection} onSelect={setSelection} theme={theme} /> : <div className="graphCanvas graphLoading">Ładowanie mapy…</div>}<div className="graphLegend"><span><i className="swatch" /> obrys = kampania</span><span><i className="swatch grey" /> pojedynczy wzorzec</span>{Object.entries(GROUP_LABELS).map(([group, label]) => <span key={group}><i style={{ borderColor: GROUP_COLORS[group] }} /> {label}</span>)}<span><i className="dottedLine" /> ten sam przypadek</span><span><i className="dashedLine" /> poniżej progu</span></div></div>
       <div className="mapSide"><div className="card mapDetails"><h2>Wybrane powiązanie</h2><SelectionDetails graph={graph || { nodes: [], links: [], threshold: 0 }} selection={selection} /></div><div className="card mapDetails"><h2>Wszystkie powiązania</h2><p className="muted">Każda linia na mapie z głównymi przesłankami.</p>{graph && <EdgeList graph={graph} selection={selection} onSelect={setSelection} />}</div></div></div>
   </>
   if (!heading) return body
