@@ -35,7 +35,7 @@ export const groupNames: Record<Group, string> = { text: 'Tekst', visual: 'Obraz
 export const groups = Object.keys(groupNames) as Group[]
 
 export function featureLabel(name: string): string {
-  return { 'person.face_vectors': 'Porównanie twarzy', 'person.faces': 'Rozpoznana osoba' }[name] || name
+  return { 'person.face_vectors': 'Porównanie twarzy', 'person.faces': 'Osoby rozpoznane po twarzach', 'person.names': 'Osoby wymienione w tekście' }[name] || name
 }
 
 export function faceMatches(value: unknown): { label: string; score?: number }[] {
