@@ -256,7 +256,7 @@ export function Home({ theme }: { theme: string }) {
   const location = useLocation()
   const [videoOk, setVideoOk] = useState(true)
   useEffect(() => {
-    if (location.hash === '#mapa') window.setTimeout(() => document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    if (location.hash === '#mapa') window.setTimeout(() => document.getElementById('mapa')?.scrollIntoView({ block: 'start' }), 120)
     else window.scrollTo({ top: 0 })
   }, [location.hash, location.key])
   const stats = state?.stats

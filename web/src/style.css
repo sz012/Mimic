@@ -397,3 +397,5 @@ main { max-width: 1560px; padding: 36px 36px 100px }
 .perspectiveSwitch button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .08) }
 .perspectiveQuestion { margin: 0; color: var(--muted); font-size: .9rem; max-width: 75ch }
 @media (max-width: 700px) { .perspectiveSwitch { border-radius: 18px } }
+
+.homeSection { scroll-margin-top: 150px }
