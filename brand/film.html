@@ -32,6 +32,7 @@ const LOGO_GEOMETRY={"front": "M0 100V36.92A36.92 36.92 0 0 1 73.85 36.92V100H46
 const W=1920,H=1080,FPS=60;
 const params=new URLSearchParams(location.search);
 if(params.has("clean"))document.body.classList.add("clean");
+const NOHEAD=params.has("nohead");
 const INK="#0E0E11",MUTED="#6B6B74",ACC="#5546FF",GREY="#B4B4BE";
 const CAMPC={A:"#A855F7",B:"#5546FF",C:"#7C9CFF"};
 const cv=document.getElementById("c"),ctx=cv.getContext("2d",{willReadFrequently:params.has("export")});
@@ -383,6 +384,7 @@ function render(tn){
   background(t,tn);
   scene45(t);
   scene123(t);
+  if(!NOHEAD){
   headline(t,0.4,3.1,"Ufamy temu, co widzimy w sieci.");
   headline(t,3.2,6.3,"A fałszywki powielają się bez końca.");
   headlineMimic(t,6.6,13.5,"odczytuje ślady, które zostawiają.");
@@ -391,8 +393,9 @@ function render(tn){
   headline(t,29.4,36.5,"Nowa odsłona? Rozpoznana od razu.");
   headline(t,36.9,43.3,"Nie pasuje? Nie zgadujemy.","Za mało wspólnych śladów. Powstaje nowy wzorzec.");
   headline(t,43.7,51.0,"Ten sam zbiór, różne pytania.","Wspólny operator czy wspólny szablon? Każde pytanie daje inną mapę.");
-  tabs(t);
   progress(t);
+  }
+  tabs(t);
   logoScene(t-15.9);
 }
 

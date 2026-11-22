@@ -1,0 +1,188 @@
+{
+  "data": [
+    {
+      "id": "100000000000001",
+      "page_id": "7001",
+      "page_name": "Inwestycje Dziś",
+      "ad_creative_bodies": [
+        "Znany ekspert ujawnia platformę inwestycyjną, która pozwala zarabiać codziennie. Wystarczy rejestracja i niewielka wpłata, a algorytm sam pomnaża kapitał. Tysiące osób już skorzystało, a banki próbują ukryć tę metodę przed zwykłymi ludźmi."
+      ],
+      "ad_creative_link_titles": [
+        "Sekret bankierów ujawniony"
+      ],
+      "ad_creative_link_captions": [
+        "inwestycje-dzis.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-12",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000002",
+      "page_id": "7001",
+      "page_name": "Inwestycje Dziś",
+      "ad_creative_bodies": [
+        "Znany ekspert ujawnia platformę inwestycyjną, która pozwala zarabiać codziennie. Wystarczy rejestracja i niewielka wpłata, a algorytm sam pomnaża kapitał. Tysiące osób już skorzystało, a banki próbują ukryć tę metodę przed zwykłymi ludźmi. Zacznij już dziś."
+      ],
+      "ad_creative_link_titles": [
+        "Zarabiaj codziennie bez ryzyka"
+      ],
+      "ad_creative_link_captions": [
+        "inwestycje-dzis.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-14",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000003",
+      "page_id": "7002",
+      "page_name": "Kapitał Plus",
+      "ad_creative_bodies": [
+        "Znany ekspert ujawnia platformę inwestycyjną, która pozwala zarabiać codziennie. Wystarczy rejestracja i niewielka wpłata, a algorytm sam pomnaża kapitał. Tysiące osób już skorzystało, a banki próbują ukryć tę metodę przed zwykłymi ludźmi."
+      ],
+      "ad_creative_link_titles": [
+        "Platforma, którą ukrywają banki"
+      ],
+      "ad_creative_link_captions": [
+        "kapital-plus.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-15",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000004",
+      "page_id": "7003",
+      "page_name": "Zdrowe Stawy",
+      "ad_creative_bodies": [
+        "Naturalna kuracja na stawy, o której lekarze nie chcą mówić. Wystarczą dwie kapsułki dziennie, a ból znika w tydzień. Promocja trwa tylko do końca miesiąca, liczba opakowań jest ograniczona."
+      ],
+      "ad_creative_link_titles": [
+        "Kuracja na stawy w tydzień"
+      ],
+      "ad_creative_link_captions": [
+        "zdrowe-stawy.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-12",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000005",
+      "page_id": "7003",
+      "page_name": "Zdrowe Stawy",
+      "ad_creative_bodies": [
+        "Naturalna kuracja na stawy, o której lekarze nie chcą mówić. Wystarczą dwie kapsułki dziennie, a ból znika w tydzień. Promocja trwa tylko do końca miesiąca, liczba opakowań jest ograniczona."
+      ],
+      "ad_creative_link_titles": [
+        "Lekarze milczą o tej metodzie"
+      ],
+      "ad_creative_link_captions": [
+        "zdrowe-stawy.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-16",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000006",
+      "page_id": "7004",
+      "page_name": "Nagroda Dla Ciebie",
+      "ad_creative_bodies": [
+        "Gratulacje, jesteś zwycięzcą losowania! Odbierz nagrodę, podaj numer telefonu i opłać niewielką dopłatę za kuriera. Oferta ważna tylko dziś."
+      ],
+      "ad_creative_link_titles": [
+        "Wygrałeś nagrodę"
+      ],
+      "ad_creative_link_captions": [
+        "nagroda-dla-ciebie.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-12",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000007",
+      "page_id": "7005",
+      "page_name": "Zegarki Okazje",
+      "ad_creative_bodies": [
+        "Oryginalne zegarki znanych marek z gwarancją. Zamów dziś i odbierz w ciągu 24 godzin."
+      ],
+      "ad_creative_link_titles": [
+        "Zegarek szwajcarski za pół ceny"
+      ],
+      "ad_creative_link_captions": [
+        "zegarki-okazje.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-12",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    },
+    {
+      "id": "100000000000008",
+      "page_id": "7006",
+      "page_name": "Dom i Ogród",
+      "ad_creative_bodies": [
+        "Profesjonalne narzędzia ogrodowe w niskiej cenie. Darmowa dostawa przy zamówieniu powyżej 100 zł."
+      ],
+      "ad_creative_link_titles": [
+        "Zestaw narzędzi ogrodowych"
+      ],
+      "ad_creative_link_captions": [
+        "dom-ogrod.test"
+      ],
+      "ad_creative_link_descriptions": [],
+      "ad_delivery_start_time": "2026-10-12",
+      "publisher_platforms": [
+        "facebook",
+        "instagram"
+      ],
+      "languages": [
+        "pl"
+      ]
+    }
+  ]
+}

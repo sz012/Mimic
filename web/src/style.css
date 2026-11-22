@@ -351,3 +351,19 @@ main { max-width: 1560px; padding: 36px 36px 100px }
 .compareSection .imagePair .imageTile img, .analysisCard .imagePair .imageTile img { max-height: none; margin: 0; height: clamp(280px, 40vh, 440px); width: auto; max-width: 100% }
 .analysisCard .imageTile { min-height: 300px }
 .analysisCard .imageTile img { height: 240px !important }
+
+.extracted { margin: 22px 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: 20px; background: var(--soft) }
+.extracted h3 { margin: 0 0 14px }
+.extractedGroups { display: grid; gap: 14px }
+.extractedGroup ul { margin: 8px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: .86rem }
+.extractedGroup li { display: grid; grid-template-columns: minmax(130px, 190px) 1fr; gap: 10px; overflow-wrap: anywhere }
+.extractedGroup li b { font-weight: 600 }
+.exportLinks { flex-wrap: wrap }
+
+.extracted { margin: 22px 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: 20px; background: var(--soft) }
+.extracted h3 { margin: 0 0 14px }
+.extractedGroups { display: grid; gap: 14px }
+.extractedGroup ul { margin: 8px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: .86rem }
+.extractedGroup li { display: grid; grid-template-columns: minmax(130px, 190px) 1fr; gap: 10px; overflow-wrap: anywhere }
+.extractedGroup li b { font-weight: 600 }
+.exportLinks { flex-wrap: wrap }

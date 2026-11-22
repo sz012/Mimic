@@ -23,16 +23,34 @@ from app.sources import load_items, open_store, raw_dir
 from engine.cluster import Workspace
 from engine.cluster.perspectives import features_used, membership_table, run_all
 from engine.explain import edge_card
-from engine.explain.report import to_csv, to_html, to_json
+from engine.explain.report import to_csv, to_dataset_csv, to_dataset_json, to_html, to_json
 from engine.ingest import ingest_upload
 from engine.schema import Item
 from engine.similarity import compare
 from engine.similarity.compare import formula
+from engine.sources import mode as adlib_mode
 
 logger = logging.getLogger(__name__)
-IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif"}
+IMAGE_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-FACE_FIELDS = {"label", "name", "person", "match_id", "score", "similarity", "confidence", "bbox", "faces", "matches"}
+FACE_FIELDS = {
+    "label",
+    "name",
+    "person",
+    "match_id",
+    "score",
+    "similarity",
+    "confidence",
+    "bbox",
+    "faces",
+    "matches",
+}
 
 
 class RateLimiter:
@@ -73,6 +91,21 @@ def public_face_value(value):
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return value
     return None
+
+
+def feature_rows(item) -> list[dict]:
+    rows = []
+    for f in sorted(item.features.values(), key=lambda f: (f.group, f.name)):
+        row = asdict(f)
+        if f.name == "person.faces":
+            row["value"] = public_face_value(f.value)
+        if f.name == "person.face_vectors":
+            row["value"] = {"count": len(f.value) if isinstance(f.value, list) else 0}
+        row["truncated"] = isinstance(f.value, list) and len(f.value) > 50
+        if row["truncated"]:
+            row["value"] = f.value[:50]
+        rows.append(row)
+    return rows
 
 
 def public_evidence(evidence):
@@ -149,15 +182,21 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             "case_links": ws.case_links,
             "formula": formula(ws.weights),
             "faces_enabled": any(
-                item.features.get("person.face_vectors") and item.features["person.face_vectors"].available
+                item.features.get("person.face_vectors")
+                and item.features["person.face_vectors"].available
                 for item in ws.items
             ),
-            "adlib_enabled": bool(os.environ.get("META_AD_LIBRARY_TOKEN")),
+            "adlib_enabled": adlib_mode() is not None,
+            "adlib_mode": adlib_mode(),
         }
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(_request, exc: StarletteHTTPException):
-        message = "Nie znaleziono zasobu." if exc.status_code == 404 and exc.detail == "Not Found" else str(exc.detail)
+        message = (
+            "Nie znaleziono zasobu."
+            if exc.status_code == 404 and exc.detail == "Not Found"
+            else str(exc.detail)
+        )
         return JSONResponse({"error": message}, status_code=exc.status_code)
 
     @app.exception_handler(RequestValidationError)
@@ -196,10 +235,12 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             "case_links": ws.case_links,
             "formula": formula(ws.weights),
             "faces_enabled": any(
-                item.features.get("person.face_vectors") and item.features["person.face_vectors"].available
+                item.features.get("person.face_vectors")
+                and item.features["person.face_vectors"].available
                 for item in ws.items
             ),
-            "adlib_enabled": bool(os.environ.get("META_AD_LIBRARY_TOKEN")),
+            "adlib_enabled": adlib_mode() is not None,
+            "adlib_mode": adlib_mode(),
         }
 
     @app.get("/api/items")
@@ -226,17 +267,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             item = ws.by_id.get(item_id)
             if item is None:
                 raise HTTPException(404, "Nie znaleziono materiału.")
-            features = []
-            for f in sorted(item.features.values(), key=lambda f: (f.group, f.name)):
-                row = asdict(f)
-                if f.name == "person.faces":
-                    row["value"] = public_face_value(f.value)
-                if f.name == "person.face_vectors":
-                    row["value"] = {"count": len(f.value) if isinstance(f.value, list) else 0}
-                row["truncated"] = isinstance(f.value, list) and len(f.value) > 50
-                if row["truncated"]:
-                    row["value"] = f.value[:50]
-                features.append(row)
+            features = feature_rows(item)
             return {
                 "id": item.id,
                 "case_id": item.case_id,
@@ -277,7 +308,12 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             if edge is None:
                 return {"score": 0, "linked": False, "card": None, "evidence": []}
             card = edge_card(edge, ws.threshold, ws.weights)
-            return {"score": edge.score, "linked": card["linked"], "card": card, "evidence": [public_evidence(e) for e in edge.evidence]}
+            return {
+                "score": edge.score,
+                "linked": card["linked"],
+                "card": card,
+                "evidence": [public_evidence(e) for e in edge.evidence],
+            }
 
     @app.get("/api/criteria")
     def criteria(request: Request, case_links: bool = False):
@@ -308,8 +344,18 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
 
     def analysis_payload(result, existing: bool) -> dict:
         return {
-            "item": {"id": result.item.id, "case_id": result.item.case_id, "kinds": result.item.kinds, "media": result.item.paths.get("screenshot", [])[:5]},
-            "assignment": {"item_id": result.assignment.item_id, "campaign_id": result.assignment.campaign_id, "score": result.assignment.score, "evidence": [public_evidence(e) for e in result.assignment.evidence]},
+            "item": {
+                "id": result.item.id,
+                "case_id": result.item.case_id,
+                "kinds": result.item.kinds,
+                "media": result.item.paths.get("screenshot", [])[:5],
+            },
+            "assignment": {
+                "item_id": result.assignment.item_id,
+                "campaign_id": result.assignment.campaign_id,
+                "score": result.assignment.score,
+                "evidence": [public_evidence(e) for e in result.assignment.evidence],
+            },
             "card": result.card,
             "similar": [{k: v for k, v in row.items() if k != "edge"} for row in result.similar],
             "missing": result.missing,
@@ -318,6 +364,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             "best_edge_card": result.best_edge_card,
             "is_new_pattern": result.is_new_pattern,
             "existing": existing,
+            "features": feature_rows(result.item),
         }
 
     @app.post("/api/analyze")
@@ -373,20 +420,35 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
     @app.post("/api/adlib/search")
     def search_ads(body: AdlibBody, request: Request):
         limit(request, "adlib", 30)
-        if not os.environ.get("META_AD_LIBRARY_TOKEN"):
+        if adlib_mode() is None:
             return {"results": [], "notice": "Biblioteka reklam wymaga tokenu serwera."}
         ws = current()
         with app.state.lock:
-            results, notice = ws.search_ads(body.terms, body.countries, app.state.cache_dir / "adlib", body.max_pages)
-            return {"results": [{"item": {"id": item.id}, "card": analysis.card} for item, analysis in results], "notice": notice}
+            results, notice = ws.search_ads(
+                body.terms, body.countries, app.state.cache_dir / "adlib", body.max_pages
+            )
+            return {
+                "results": [
+                    {"item": {"id": item.id}, "card": analysis.card} for item, analysis in results
+                ],
+                "notice": notice,
+            }
 
     @app.get("/api/media")
     def media(path: str):
         for root in (app.state.raw_dir, app.state.upload_dir):
             base = root.resolve()
             candidate = (base / path).resolve()
-            if candidate.is_relative_to(base) and candidate.is_file() and candidate.suffix.lower() in IMAGE_TYPES:
-                return FileResponse(candidate, media_type=IMAGE_TYPES[candidate.suffix.lower()], headers={"X-Content-Type-Options": "nosniff"})
+            if (
+                candidate.is_relative_to(base)
+                and candidate.is_file()
+                and candidate.suffix.lower() in IMAGE_TYPES
+            ):
+                return FileResponse(
+                    candidate,
+                    media_type=IMAGE_TYPES[candidate.suffix.lower()],
+                    headers={"X-Content-Type-Options": "nosniff"},
+                )
         raise HTTPException(404, "Nie znaleziono obrazu.")
 
     @app.get("/api/export/{format}")
@@ -401,9 +463,19 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                 content, mime = to_csv(cards), "text/csv"
             elif format == "html":
                 content, mime = to_html(cards, meta), "text/html"
+            elif format == "dataset-json":
+                content, mime = to_dataset_json(ws.items, ws.label), "application/json"
+            elif format == "dataset-csv":
+                content, mime = to_dataset_csv(ws.items, ws.label), "text/csv"
             else:
                 raise HTTPException(404, "Nieznany format raportu.")
-            return Response(content, media_type=f"{mime}; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="mimic-report.{format}"'})
+            return Response(
+                content,
+                media_type=f"{mime}; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{"mimic-zbior-cech" if format.startswith("dataset") else "mimic-raport"}.{format.split("-")[-1]}"'
+                },
+            )
 
     film = Path(__file__).resolve().parents[1] / "brand" / "film" / "mimic-film.mp4"
 
@@ -426,6 +498,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             if full_path and "." in Path(full_path).name:
                 raise HTTPException(404, "Nie znaleziono pliku.")
             return FileResponse(dist / "index.html")
+
     return app
 
 
