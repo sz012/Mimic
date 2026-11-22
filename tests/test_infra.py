@@ -49,12 +49,12 @@ def make_item(raw: Path, **paths) -> Item:
 def test_shared_cdn_ips_are_not_features(tmp_path):
     from engine.features.urlnorm import is_shared_ip
 
-    assert is_shared_ip("188.114.96.12") and is_shared_ip("104.21.82.70")
+    assert is_shared_ip("188.114.98.40") and is_shared_ip("104.18.40.7")
     assert is_shared_ip("1.1.1.1") and is_shared_ip("127.0.0.1") and is_shared_ip("10.0.0.5")
     assert not is_shared_ip("93.184.216.34") and not is_shared_ip("nie-ip")
     write_har(
         tmp_path / "1" / "a.har",
-        [har_entry("https://x.przyklad.test/", rtype="document", ip="104.21.82.70")],
+        [har_entry("https://x.przyklad.test/", rtype="document", ip="104.18.40.7")],
     )
     feats = extract(make_item(tmp_path, har=["1/a.har"]), tmp_path)
     assert not feats["infra.ip"].available
@@ -72,7 +72,7 @@ def test_registrable_domain_and_common():
 def test_normalize_path_collapses_ids_and_drops_static():
     assert normalize_path("https://x.test/api/v1/lead/123456") == "/api/v1/lead/{id}"
     assert (
-        normalize_path("https://x.test/api/2bcae51f-3bb5-4567-887b-a59d05d19641/go")
+        normalize_path("https://x.test/api/0f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0/go")
         == "/api/{id}/go"
     )
     assert normalize_path("https://x.test/lander/order.php?x=1") == "/lander/order.php"
@@ -82,35 +82,35 @@ def test_normalize_path_collapses_ids_and_drops_static():
 
 
 def test_trackers_from_text_and_urls():
-    text = "fbq('init', '1234567890123'); gtag('config','AW-18463917747'); ym(12345678, 'init', {})"
+    text = "fbq('init', '1234567890123'); gtag('config','AW-10293847561'); ym(12345678, 'init', {})"
     found = trackers_in_text(text)
-    assert {"fbpixel:1234567890123", "gads:AW-18463917747", "ym:12345678"} <= found
+    assert {"fbpixel:1234567890123", "gads:AW-10293847561", "ym:12345678"} <= found
     assert "ga4:G-ABCDEFGH" not in trackers_in_text("G-ABCDEFGH")
     assert "ga4:G-ABCD1234EF" in trackers_in_text("G-ABCD1234EF")
     assert "fbpixel:99999999999" in trackers_in_url(
         "https://www.facebook.com/tr/?id=99999999999&ev=PageView"
     )
-    assert "gads:AW-18463917747" in trackers_in_url(
-        "https://www.google.com/pagead/1p-conversion/18463917747/?rand=1"
+    assert "gads:AW-10293847561" in trackers_in_url(
+        "https://www.google.com/pagead/1p-conversion/10293847561/?rand=1"
     )
 
 
 def test_url_params_filters_low_entropy_and_hashes_secrets():
     params, trackers = url_params(
-        "https://x.test/?utm_id=WVVfDj0sSpk725CZefaO&utm_source=fb&utm_medium=Instagram_Feed"
-        "&utm_campaign=2372&pxl=1071875908635809&access_token=SECRETVALUE123&fbclid=abc1234567"
+        "https://x.test/?utm_id=Qx7TmZp2LkW9rB4nYc8D&utm_source=fb&utm_medium=Instagram_Feed"
+        "&utm_campaign=5150&pxl=1029384756102938&access_token=SECRETVALUE123&fbclid=abc1234567"
     )
-    assert "utm_id=WVVfDj0sSpk725CZefaO" in params
+    assert "utm_id=Qx7TmZp2LkW9rB4nYc8D" in params
     assert not any(
         p.startswith(("utm_source", "utm_medium", "utm_campaign", "fbclid")) for p in params
     )
     assert any(p.startswith("access_token=sha1:") and "SECRET" not in p for p in params)
-    assert "fbpixel:1071875908635809" in trackers
+    assert "fbpixel:1029384756102938" in trackers
 
 
 def test_is_identifier():
-    assert is_identifier("db4aoqm87rcs738c8m4g")
-    assert is_identifier("LyTgHoJLnc")
+    assert is_identifier("kq3vz81mx0pt5ws2nd7e")
+    assert is_identifier("QmZrTpWkVb")
     assert not is_identifier("FacebookAds")
     assert not is_identifier("vid_3")
     assert not is_identifier("{account.id}")
@@ -120,7 +120,7 @@ def test_extract_from_har(tmp_path):
     entries = [
         har_entry("https://static.cdn.test/a.js", rtype="script", mime="text/javascript"),
         har_entry(
-            "https://sklep.przyklad.test/oferta/?utm_id=WVVfDj0sSpk725CZefaO",
+            "https://sklep.przyklad.test/oferta/?utm_id=Qx7TmZp2LkW9rB4nYc8D",
             rtype="document",
             headers={"Server": "nginx"},
             text="<html>fbq('init','1234567890123')</html>",
@@ -140,7 +140,7 @@ def test_extract_from_har(tmp_path):
     assert set(feats) == set(NAMES)
     assert feats["infra.domain"].value == ["przyklad.test"]
     assert feats["infra.tracker_ids"].value == ["fbpixel:1234567890123"]
-    assert feats["infra.url_params"].value == ["utm_id=WVVfDj0sSpk725CZefaO"]
+    assert feats["infra.url_params"].value == ["utm_id=Qx7TmZp2LkW9rB4nYc8D"]
     assert feats["infra.endpoints"].value == ["/api/v1/lead/{id}"]
     assert feats["infra.server"].value == ["server:nginx"]
     assert feats["infra.ip"].value == ["93.184.216.34"]
@@ -167,7 +167,7 @@ def test_broken_and_empty_har_do_not_raise(tmp_path):
 
 def test_html_only_uses_saved_from_url_and_forms(tmp_path):
     html = (
-        "<!-- saved from url=(0070)https://landing.przyklad.test/oferta/?utm_id=WVVfDj0sSpk725CZefaO -->"
+        "<!-- saved from url=(0070)https://landing.przyklad.test/oferta/?utm_id=Qx7TmZp2LkW9rB4nYc8D -->"
         "<html><head><link rel='icon' href='ikona.png'></head><body>"
         "<form action='https://landing.przyklad.test/lander/order.php'></form>"
         "<script>fbq('init','1234567890123')</script>"
@@ -193,7 +193,7 @@ def test_html_only_uses_saved_from_url_and_forms(tmp_path):
 def test_meta_and_url_sources(tmp_path):
     (tmp_path / "1").mkdir()
     (tmp_path / "1" / "manifest.json").write_text(
-        json.dumps({"page_url": "https://sklep.przyklad.test/?pxl=1071875908635809"})
+        json.dumps({"page_url": "https://sklep.przyklad.test/?pxl=1029384756102938"})
     )
     (tmp_path / "1" / "info.json").write_text(
         json.dumps({"extractor": "facebook:ads", "playlist_uploader": "Strona Testowa"})
@@ -202,7 +202,7 @@ def test_meta_and_url_sources(tmp_path):
     item = make_item(tmp_path, meta=["1/manifest.json", "1/info.json"], url=["1/input.url"])
     feats = extract(item, tmp_path)
     assert feats["infra.ad_account"].value == ["facebook:strona testowa"]
-    assert "fbpixel:1071875908635809" in feats["infra.tracker_ids"].value
+    assert "fbpixel:1029384756102938" in feats["infra.tracker_ids"].value
     assert sorted(feats["infra.domain"].value) == ["example.test", "przyklad.test"]
 
 
