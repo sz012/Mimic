@@ -14,6 +14,12 @@ from engine.cluster.campaigns import (
     case_pairs,
     cluster,
 )
+from engine.cluster.perspectives import (
+    DEFAULT_PERSPECTIVE,
+    PERSPECTIVES,
+    perspective_weights,
+    run_perspective,
+)
 from engine.cluster.pipeline import all_edges, extract_all, extract_features, has_features
 from engine.explain import assignment_card, campaign_card, edge_card
 from engine.schema import Assignment, Edge, Item
@@ -24,6 +30,13 @@ from engine.sources.adlib import AdLibraryUnavailable, AdQuery, materialize, sea
 from engine.store import Store
 
 MIN_SIMILAR = 0.05
+
+
+def dominant_group(edge: Edge) -> str | None:
+    best = max(edge.evidence, key=lambda e: e.weight * e.score, default=None)
+    return best.group if best is not None and best.weight * best.score > 0 else None
+
+
 CASE_CARD = {
     "strength": "ten sam przypadek",
     "summary": "połączone, bo: materiały z tego samego zgłoszenia (np. reklama i jej strona docelowa)",
@@ -61,6 +74,9 @@ class Workspace:
     campaigns: list[Campaign] = field(default_factory=list)
     case_links: bool = CASE_LINKS_DEFAULT
     store: Store | None = field(default=None, repr=False)
+    _perspectives: dict[tuple, tuple[list[Edge], list[Campaign], Weights]] = field(
+        default_factory=dict, repr=False
+    )
 
     def __post_init__(self) -> None:
         self._index()
@@ -228,14 +244,40 @@ class Workspace:
         c = self.campaign(campaign_id)
         return campaign_card(c.id, c.items, c.edges, self.threshold, self.weights) if c else None
 
-    def graph(self, min_edge: float) -> dict[str, Any]:
+    def perspective(self, key: str | None) -> tuple[list[Edge], list[Campaign], Weights]:
+        if not key or key == DEFAULT_PERSPECTIVE:
+            return self.edges, self.campaigns, self.weights
+        if key not in PERSPECTIVES:
+            raise KeyError(key)
+        cache_key = (key, self.threshold, self.method, self.case_links, len(self.items))
+        if cache_key not in self._perspectives:
+            result = run_perspective(
+                self.items,
+                key,
+                self.threshold,
+                self.case_links,
+                self.context,
+                self.weights,
+                self.method,
+            )
+            self._perspectives[cache_key] = (
+                result.edges,
+                result.campaigns,
+                perspective_weights(key, self.weights),
+            )
+        return self._perspectives[cache_key]
+
+    def graph(self, min_edge: float, perspective: str | None = None) -> dict[str, Any]:
+        edges, campaigns, weights = self.perspective(perspective)
+        label = {i.id: c.id for c in campaigns for i in c.items}
+        single = {i.id for c in campaigns if c.is_singleton for i in c.items}
         nodes = [
             {
                 "id": i.id,
                 "case": i.case_id,
-                "campaign": self.label.get(i.id),
+                "campaign": label.get(i.id),
                 "kinds": i.kinds,
-                "singleton": self.campaign(self.label[i.id]).is_singleton,
+                "singleton": i.id in single,
             }
             for i in self.items
         ]
@@ -245,11 +287,12 @@ class Workspace:
                 "b": e.b,
                 "score": e.score,
                 "linked": card["linked"],
+                "group": dominant_group(e),
                 "card": card,
             }
-            for e in self.edges
+            for e in edges
             if e.score >= min_edge
-            for card in [edge_card(e, self.threshold, self.weights)]
+            for card in [edge_card(e, self.threshold, weights)]
         ]
         if self.case_links:
             drawn = {frozenset((link["a"], link["b"])) for link in links if link["linked"]}
@@ -262,10 +305,16 @@ class Workspace:
                             "score": 1.0,
                             "linked": True,
                             "case": True,
+                            "group": "case",
                             "card": CASE_CARD,
                         }
                     )
-        return {"nodes": nodes, "links": links, "threshold": self.threshold}
+        return {
+            "nodes": nodes,
+            "links": links,
+            "threshold": self.threshold,
+            "perspective": perspective or DEFAULT_PERSPECTIVE,
+        }
 
     def stats(self) -> dict[str, int]:
         return {

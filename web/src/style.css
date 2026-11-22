@@ -367,3 +367,33 @@ main { max-width: 1560px; padding: 36px 36px 100px }
 .extractedGroup li { display: grid; grid-template-columns: minmax(130px, 190px) 1fr; gap: 10px; overflow-wrap: anywhere }
 .extractedGroup li b { font-weight: 600 }
 .exportLinks { flex-wrap: wrap }
+
+.gGraph { position: relative; overflow: hidden }
+.gGraph svg { width: 100%; height: 100%; display: block }
+.gTip { position: absolute; z-index: 5; max-width: 300px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); font-size: .8rem; line-height: 1.4; pointer-events: none; box-shadow: var(--shadow) }
+.gTip div { color: var(--muted) }
+.gLink { fill: none; stroke-linecap: round; transition: opacity .2s }
+.gLink.linked { stroke-dasharray: 14 8; animation: gFlow 10s linear infinite }
+.gLink.weak { stroke: var(--muted); stroke-dasharray: 2 6; opacity: .55 }
+.gLink.case { stroke-dasharray: 2 5; opacity: .85 }
+.gLink.active { opacity: 1; stroke-width: 4px !important }
+.gHit { stroke: transparent; stroke-width: 14; fill: none; cursor: pointer }
+.gPacket { pointer-events: none; opacity: .8 }
+.gNode { transition: opacity .2s }
+.gNode .gCore { stroke: var(--bg); stroke-width: 2.5; cursor: pointer }
+.gNode.active .gCore { stroke: var(--text); stroke-width: 3 }
+.gNode text { fill: var(--text); font-size: 12px; font-weight: 500; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round }
+.gHull { opacity: .1; stroke-width: 1.5; stroke-opacity: .6; transition: opacity .2s }
+.gHullLabel { font-size: 13px; font-weight: 600; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4px }
+.gGraph .faded, .gGraph .hoverDim { opacity: .12 }
+.gHull.faded { opacity: .03 }
+@keyframes gFlow { to { stroke-dashoffset: -220 } }
+@media (prefers-reduced-motion: reduce) { .gLink.linked { animation: none } .gPacket { display: none } }
+
+.perspectiveBar { display: grid; gap: 10px; margin: 0 0 16px }
+.perspectiveSwitch { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; width: fit-content; max-width: 100%; border: 1px solid var(--border); border-radius: 999px; background: var(--surface) }
+.perspectiveSwitch button { border: 0; border-radius: 999px; padding: 8px 16px; background: transparent; color: var(--muted); font: inherit; font-size: .88rem; font-weight: 500; cursor: pointer }
+.perspectiveSwitch button:hover { color: var(--text) }
+.perspectiveSwitch button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .08) }
+.perspectiveQuestion { margin: 0; color: var(--muted); font-size: .9rem; max-width: 75ch }
+@media (max-width: 700px) { .perspectiveSwitch { border-radius: 18px } }

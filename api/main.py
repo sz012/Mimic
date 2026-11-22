@@ -21,7 +21,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.demo_items import demo_items
 from app.sources import load_items, open_store, raw_dir
 from engine.cluster import Workspace
-from engine.cluster.perspectives import features_used, membership_table, run_all
+from engine.cluster.perspectives import (
+    DEFAULT_PERSPECTIVE,
+    PERSPECTIVES,
+    features_used,
+    membership_table,
+    run_all,
+)
 from engine.explain import edge_card
 from engine.explain.report import to_csv, to_dataset_csv, to_dataset_json, to_html, to_json
 from engine.ingest import ingest_upload
@@ -188,6 +194,11 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             ),
             "adlib_enabled": adlib_mode() is not None,
             "adlib_mode": adlib_mode(),
+            "perspectives": [
+                {"key": p.key, "label": p.label, "question": p.question}
+                for p in PERSPECTIVES.values()
+            ],
+            "default_perspective": DEFAULT_PERSPECTIVE,
         }
 
     @app.exception_handler(StarletteHTTPException)
@@ -241,6 +252,11 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             ),
             "adlib_enabled": adlib_mode() is not None,
             "adlib_mode": adlib_mode(),
+            "perspectives": [
+                {"key": p.key, "label": p.label, "question": p.question}
+                for p in PERSPECTIVES.values()
+            ],
+            "default_perspective": DEFAULT_PERSPECTIVE,
         }
 
     @app.get("/api/items")
@@ -292,10 +308,15 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             return card
 
     @app.get("/api/graph")
-    def graph(min_edge: float = Query(default=0.3, ge=0, le=1)):
+    def graph(
+        min_edge: float = Query(default=0.3, ge=0, le=1),
+        perspective: str = Query(default=DEFAULT_PERSPECTIVE),
+    ):
+        if perspective not in PERSPECTIVES:
+            raise HTTPException(422, "Nieznana perspektywa.")
         ws = current()
         with app.state.lock:
-            return ws.graph(min_edge)
+            return ws.graph(min_edge, perspective)
 
     @app.post("/api/compare")
     def compare_items(body: CompareBody):

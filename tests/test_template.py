@@ -105,24 +105,24 @@ def test_generic_forms_are_not_emitted(tmp_path):
 
 
 def test_asset_names_skip_hashed_files(tmp_path):
-    html = page("<img src='strona_files/news1.webp'><p>x</p><p>y</p><p>z</p>")
+    html = page("<img src='strona_files/obraz1.webp'><p>x</p><p>y</p><p>z</p>")
     assets = {
-        "news1.webp": b"a",
-        "06-bank-kacper.webp": b"b",
-        "3f7ab85d-c32f-46cd-9866-163a0bc2e04e.png": b"c",
+        "obraz1.webp": b"a",
+        "04-baner-oferta.webp": b"b",
+        "9a8b7c6d-1e2f-4a3b-8c4d-5e6f7a8b9c0d.png": b"c",
         "main.css": b"d",
     }
     feats = extract(write_item(tmp_path, "1", html, assets), tmp_path)
-    assert feats["template.asset_names"].value == ["06-bank-kacper.webp", "news1.webp"]
+    assert feats["template.asset_names"].value == ["04-baner-oferta.webp", "obraz1.webp"]
 
 
 def test_assets_without_html_still_give_names(tmp_path):
     case = tmp_path / "1" / "tytul_files"
     case.mkdir(parents=True)
-    (case / "photo7.webp").write_bytes(b"x")
+    (case / "zdjecie7.webp").write_bytes(b"x")
     item = Item(id="1", case_id="1", paths={"assets": ["1/tytul_files"]})
     feats = extract(item, tmp_path)
-    assert feats["template.asset_names"].value == ["photo7.webp"]
+    assert feats["template.asset_names"].value == ["zdjecie7.webp"]
     assert not feats["template.dom_simhash"].available
 
 
